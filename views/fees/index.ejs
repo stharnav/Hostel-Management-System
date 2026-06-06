@@ -1,0 +1,253 @@
+<%
+  function fmt(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  }
+%>
+
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">Fees</h2>
+    <p class="mt-1 text-sm text-ink-500">
+      Fees are due every <%= constants.CYCLE_DAYS %> days from enrollment.
+      Students get a <%= constants.GRACE_DAYS %>-day window to pay each cycle before it becomes overdue.
+    </p>
+  </div>
+</div>
+
+<!-- Summary stat cards -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+  <div class="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white p-5 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-red-100 text-red-600">
+        <i class="bi bi-exclamation-triangle-fill text-lg"></i>
+      </div>
+      <span class="text-xs font-semibold uppercase text-red-700">Overdue</span>
+    </div>
+    <p class="mt-3 text-2xl font-bold text-ink-900"><%= groups.overdue.length %></p>
+    <p class="mt-1 text-xs text-ink-500">
+      <%= brand.currencySymbol %><%= totals.overdueAmount %> outstanding
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+        <i class="bi bi-hourglass-split text-lg"></i>
+      </div>
+      <span class="text-xs font-semibold uppercase text-amber-700">Due now</span>
+    </div>
+    <p class="mt-3 text-2xl font-bold text-ink-900"><%= groups.due.length %></p>
+    <p class="mt-1 text-xs text-ink-500">
+      <%= brand.currencySymbol %><%= totals.dueAmount %> to collect within grace
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+        <i class="bi bi-check2-circle text-lg"></i>
+      </div>
+      <span class="text-xs font-semibold uppercase text-emerald-700">Not yet due</span>
+    </div>
+    <p class="mt-3 text-2xl font-bold text-ink-900"><%= groups.pending.length %></p>
+    <p class="mt-1 text-xs text-ink-500">Within the 30-day free window</p>
+  </div>
+</div>
+
+<!-- Filter pills -->
+<%
+  const filters = [
+    { k: 'todo',    l: 'To pay',  c: groups.overdue.length + groups.due.length, tone: 'red' },
+    { k: 'overdue', l: 'Overdue', c: groups.overdue.length, tone: 'red' },
+    { k: 'due',     l: 'Due',     c: groups.due.length, tone: 'amber' },
+    { k: 'pending', l: 'Pending', c: groups.pending.length, tone: 'emerald' },
+    { k: 'all',     l: 'All',     c: groups.overdue.length + groups.due.length + groups.pending.length + groups.unknown.length, tone: 'ink' },
+  ];
+%>
+<div class="mt-6 flex flex-wrap items-center gap-2">
+  <% filters.forEach(function(f) {
+       const active = f.k === filter; %>
+    <a href="/fees?status=<%= f.k %>"
+       class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition
+              <%= active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-100' %>">
+      <%= f.l %>
+      <span class="rounded-full px-1.5 text-xs
+                   <%= active ? 'bg-white/20' : 'bg-ink-100 text-ink-600' %>"><%= f.c %></span>
+    </a>
+  <% }) %>
+</div>
+
+<!-- Table -->
+<div class="mt-4 rounded-2xl border border-ink-200 bg-white shadow-card">
+  <% if (!visible.length) { %>
+    <div class="px-6 py-16 text-center">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+        <i class="bi bi-check2-all text-3xl"></i>
+      </div>
+      <h3 class="text-base font-semibold text-ink-900">All clear!</h3>
+      <p class="mt-1 text-sm text-ink-500">No students match this filter.</p>
+    </div>
+  <% } else { %>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-ink-200">
+        <thead class="bg-ink-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Student</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Room</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Enrolled / Cycle</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Due date</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Status</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-500">Amount</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-500">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ink-100 bg-white">
+          <% visible.forEach(function(s) {
+               const f = s.fee;
+               const toneByStatus = {
+                 overdue: { bg:'bg-red-50',     text:'text-red-700',     border:'border-red-200',     icon:'bi-exclamation-triangle-fill', label: f.daysOverdue+'d overdue' },
+                 due:     { bg:'bg-amber-50',   text:'text-amber-700',   border:'border-amber-200',   icon:'bi-hourglass-split',           label: f.daysLeft+'d left' },
+                 pending: { bg:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200', icon:'bi-clock',                     label: f.daysLeft+'d until due' },
+                 unknown: { bg:'bg-ink-100',    text:'text-ink-600',     border:'border-ink-200',     icon:'bi-question-circle',           label: 'No enroll date' },
+               }[f.status]; %>
+            <tr class="hover:bg-ink-50">
+              <td class="whitespace-nowrap px-6 py-4">
+                <a href="/students/<%= s.id %>" class="flex items-center gap-3">
+                  <% if (s.photo && s.photo.url) { %>
+                    <img src="<%= s.photo.url %>" class="h-10 w-10 rounded-full object-cover" />
+                  <% } else { %>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 font-semibold">
+                      <%= (s.name || '?').charAt(0).toUpperCase() %>
+                    </div>
+                  <% } %>
+                  <div>
+                    <p class="text-sm font-semibold text-ink-900"><%= s.name %></p>
+                    <p class="text-xs text-ink-500"><%= s.phone %></p>
+                  </div>
+                </a>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm">
+                <% if (s.room) { %>
+                  <span class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+                    Room <%= s.room.roomNumber %>
+                  </span>
+                <% } else { %>
+                  <span class="text-xs text-ink-400">No room</span>
+                <% } %>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700">
+                <div><%= fmt(s.enrolledAt || s.createdAt) %></div>
+                <div class="text-xs text-ink-500">
+                  Cycle #<%= f.cycleNumber || 1 %>
+                  <% if (s.lastPaidAt) { %> · last paid <%= fmt(s.lastPaidAt) %><% } %>
+                </div>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700">
+                <% if (f.dueDate) { %>
+                  <div><%= fmt(f.dueDate) %></div>
+                  <% if (f.deadline) { %>
+                    <div class="text-xs text-ink-500">pay by <%= fmt(f.deadline) %></div>
+                  <% } %>
+                <% } else { %>—<% } %>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold
+                             <%= toneByStatus.bg %> <%= toneByStatus.text %> <%= toneByStatus.border %>">
+                  <i class="bi <%= toneByStatus.icon %>"></i>
+                  <%= toneByStatus.label %>
+                </span>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-ink-900">
+                <%= brand.currencySymbol %><%= s.amount %>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-right">
+                <% if (f.status === 'pending') { %>
+                  <button type="button"
+                          class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100"
+                          onclick="openPay('<%= s.id %>', '<%= s.name.replace(/'/g, "\\'") %>', <%= s.amount %>, true)">
+                    <i class="bi bi-fast-forward-circle"></i> Pay early
+                  </button>
+                <% } else { %>
+                  <button type="button"
+                          class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                          onclick="openPay('<%= s.id %>', '<%= s.name.replace(/'/g, "\\'") %>', <%= s.amount %>, false)">
+                    <i class="bi bi-cash-coin"></i> Mark paid
+                  </button>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- Payment modal -->
+<div id="pay-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-900/50 p-4">
+  <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 id="pay-title" class="text-lg font-bold text-ink-900">Record payment</h3>
+      <button type="button" onclick="closePay()" class="text-ink-500 hover:text-ink-800">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div id="pay-early-banner" class="mb-4 hidden rounded-lg border border-brand-200 bg-brand-50 p-3 text-sm text-brand-800">
+      <i class="bi bi-info-circle-fill"></i>
+      <strong>Paying ahead.</strong> This payment will be credited to the next 30-day cycle.
+    </div>
+    <p class="mb-4 text-sm text-ink-500">Recording payment for <strong id="pay-name"></strong>.</p>
+    <form id="pay-form" method="POST" class="space-y-4">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Amount (<%= brand.currencySymbol %>)</label>
+        <input id="pay-amount" name="amount" type="number" min="0" step="any" required
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Method</label>
+        <select name="method" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="cash">Cash</option>
+          <option value="bank">Bank transfer</option>
+          <option value="esewa">eSewa</option>
+          <option value="khalti">Khalti</option>
+          <option value="upi">UPI</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Note (optional)</label>
+        <input name="note" maxlength="200"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="button" onclick="closePay()" class="rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</button>
+        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          <i class="bi bi-check2"></i> Record payment
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openPay(id, name, amount, isEarly) {
+    const m = document.getElementById('pay-modal');
+    const f = document.getElementById('pay-form');
+    f.action = '/fees/' + id + '/pay';
+    document.getElementById('pay-name').textContent = name;
+    document.getElementById('pay-amount').value = amount || '';
+    document.getElementById('pay-title').textContent = isEarly ? 'Pay early' : 'Record payment';
+    document.getElementById('pay-early-banner').classList.toggle('hidden', !isEarly);
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+  function closePay() {
+    const m = document.getElementById('pay-modal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+  document.getElementById('pay-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'pay-modal') closePay();
+  });
+</script>

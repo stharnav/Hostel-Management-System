@@ -1,0 +1,58 @@
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">Rooms</h2>
+    <p class="mt-1 text-sm text-ink-500">Manage rooms and assignments</p>
+  </div>
+  <a href="/rooms/add"
+     class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+    <i class="bi bi-plus-lg"></i>
+    Add Room
+  </a>
+</div>
+
+<% if (!rooms.length) { %>
+  <div class="rounded-2xl border border-ink-200 bg-white px-6 py-16 text-center shadow-card">
+    <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-ink-100 text-ink-400">
+      <i class="bi bi-door-closed text-3xl"></i>
+    </div>
+    <h3 class="text-base font-semibold text-ink-900">No rooms yet</h3>
+    <p class="mt-1 text-sm text-ink-500">Add a room to begin assigning students.</p>
+    <a href="/rooms/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+      <i class="bi bi-plus-lg"></i> Add room
+    </a>
+  </div>
+<% } else { %>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <% rooms.forEach(function(r) { %>
+      <% const occ = (r.occupants || []).length; %>
+      <% const full = occ >= r.capacity; %>
+      <% const pct = r.capacity ? Math.round((occ / r.capacity) * 100) : 0; %>
+      <a href="/rooms/<%= r.id %>"
+         class="group rounded-2xl border border-ink-200 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-soft">
+        <div class="flex items-start justify-between">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl
+                      <%= full ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600' %>">
+            <i class="bi bi-door-closed-fill text-xl"></i>
+          </div>
+          <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold
+                       <%= full ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700' %>">
+            <%= full ? 'Full' : 'Available' %>
+          </span>
+        </div>
+        <h3 class="mt-4 text-lg font-bold text-ink-900 group-hover:text-brand-700">Room <%= r.roomNumber %></h3>
+        <p class="text-sm text-ink-500"><%= r.type %> · Floor <%= r.floor || '—' %></p>
+
+        <div class="mt-4">
+          <div class="mb-1.5 flex items-center justify-between text-xs">
+            <span class="font-medium text-ink-600"><%= occ %> / <%= r.capacity %> beds</span>
+            <span class="font-semibold text-ink-900"><%= brand.currencySymbol %><%= r.rent || 0 %></span>
+          </div>
+          <div class="h-1.5 w-full overflow-hidden rounded-full bg-ink-100">
+            <div class="h-full rounded-full <%= full ? 'bg-red-500' : 'bg-emerald-500' %>"
+                 data-width="<%= pct %>"></div>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+<% } %>

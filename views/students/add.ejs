@@ -1,0 +1,215 @@
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-ink-900">Add Student</h2>
+  <p class="mt-1 text-sm text-ink-500">Create a new student record</p>
+</div>
+
+<form method="POST" action="/students" enctype="multipart/form-data" class="space-y-6">
+  <!-- Identity -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-vcard-fill text-brand-600"></i> Personal Information
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Full name (English) <span class="text-red-500">*</span></label>
+        <input name="name" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">पूरा नाम (Nepali)</label>
+        <input name="nameNepali" placeholder="नेपालीमा नाम लेख्नुहोस्" lang="ne"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Date of birth</label>
+        <input type="date" name="dob" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Citizenship No.</label>
+        <input name="citizenNo" placeholder="e.g. 12-34-78-12345"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Email <span class="text-red-500">*</span></label>
+        <input type="email" name="email" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Phone <span class="text-red-500">*</span></label>
+        <input name="phone" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Permanent address</label>
+        <textarea name="address" rows="2" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-mortarboard-fill text-brand-600"></i> Education
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name of educational institute</label>
+        <input name="institute" placeholder="e.g. Kathmandu Model College"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Class time</label>
+        <select name="classTime" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <option>Morning</option>
+          <option>Day</option>
+          <option>Evening</option>
+        </select>
+      </div>
+      <div class="md:col-span-2 lg:col-span-3">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Level of study</label>
+        <select name="levelOfStudy" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <option>School</option>
+          <option>+2 / Higher Secondary</option>
+          <option>Diploma</option>
+          <option>Bachelors</option>
+          <option>Masters</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Health -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-heart-pulse-fill text-brand-600"></i> Health &amp; Dietary
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Blood group</label>
+        <select name="bloodGroup" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <% ['A+','A-','B+','B-','AB+','AB-','O+','O-'].forEach(function(g){ %>
+            <option><%= g %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Dietary preference</label>
+        <select name="dietary" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <option value="veg">Vegetarian</option>
+          <option value="nonveg">Non-vegetarian</option>
+          <option value="eggOnly">Veg + Egg only</option>
+        </select>
+      </div>
+      <div class="md:col-span-2 lg:col-span-3">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Any diseases / medical conditions</label>
+        <textarea name="diseases" rows="2" placeholder="Mention allergies, chronic conditions, regular medication, etc."
+                  class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guardian: Father -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-fill text-brand-600"></i> Father's Details
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input name="fatherName" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Contact no.</label>
+        <input name="fatherPhone" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Occupation</label>
+        <input name="fatherOccupation" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Guardian: Mother -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-fill text-brand-600"></i> Mother's Details
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input name="motherName" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Contact no.</label>
+        <input name="motherPhone" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Occupation</label>
+        <input name="motherOccupation" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Local Guardian -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-people-fill text-brand-600"></i> Local Guardian
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input name="localGuardianName" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Relation with student</label>
+        <input name="localGuardianRelation" placeholder="e.g. Uncle / Aunt / Family friend"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Phone no.</label>
+        <input name="localGuardianPhone" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Occupation</label>
+        <input name="localGuardianOccupation" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-1 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-images text-brand-600"></i> Documents
+    </h3>
+    <p class="mb-4 text-xs text-ink-500">Images are automatically compressed before upload</p>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Photo</label>
+        <label class="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-ink-300 bg-ink-50 py-6 text-center hover:border-brand-400 hover:bg-brand-50">
+          <i class="bi bi-cloud-arrow-up-fill text-3xl text-ink-400"></i>
+          <span class="mt-2 text-sm font-medium text-ink-700">Upload student photo</span>
+          <span class="mt-0.5 text-xs text-ink-500">PNG, JPG up to 8MB</span>
+          <input type="file" name="photo" accept="image/*" class="hidden" />
+        </label>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">ID proof / Citizenship</label>
+        <label class="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-ink-300 bg-ink-50 py-6 text-center hover:border-brand-400 hover:bg-brand-50">
+          <i class="bi bi-card-image text-3xl text-ink-400"></i>
+          <span class="mt-2 text-sm font-medium text-ink-700">Upload ID document</span>
+          <span class="mt-0.5 text-xs text-ink-500">Citizenship / Passport / License</span>
+          <input type="file" name="idProof" accept="image/*" class="hidden" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <a href="/students" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i> Save Student
+    </button>
+  </div>
+</form>

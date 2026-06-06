@@ -1,0 +1,214 @@
+<%
+  // Defensive defaults so the form works on records created with the old schema.
+  const father = student.father || {};
+  const mother = student.mother || {};
+  const lg     = student.localGuardian || {};
+  const bloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+  const classTimes  = ['Morning','Day','Evening'];
+  const levels      = ['School','+2 / Higher Secondary','Diploma','Bachelors','Masters','Other'];
+  const diets       = [{v:'veg',l:'Vegetarian'},{v:'nonveg',l:'Non-vegetarian'},{v:'eggOnly',l:'Veg + Egg only'}];
+%>
+
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-ink-900">Edit Student</h2>
+  <p class="mt-1 text-sm text-ink-500">Update <%= student.name %>'s information</p>
+</div>
+
+<form method="POST" action="/students/<%= student.id %>?_method=PUT" enctype="multipart/form-data" class="space-y-6">
+  <!-- Identity -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-vcard-fill text-brand-600"></i> Personal Information
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Full name (English) *</label>
+        <input name="name" value="<%= student.name %>" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">पूरा नाम (Nepali)</label>
+        <input name="nameNepali" value="<%= student.nameNepali || '' %>" lang="ne" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Date of birth</label>
+        <input type="date" name="dob" value="<%= student.dob || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Citizenship No.</label>
+        <input name="citizenNo" value="<%= student.citizenNo || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Email *</label>
+        <input type="email" name="email" value="<%= student.email %>" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Phone *</label>
+        <input name="phone" value="<%= student.phone %>" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Permanent address</label>
+        <textarea name="address" rows="2" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"><%= student.address || '' %></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-mortarboard-fill text-brand-600"></i> Education
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Educational institute</label>
+        <input name="institute" value="<%= student.institute || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Class time</label>
+        <select name="classTime" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <% classTimes.forEach(function(t){ %>
+            <option <%= student.classTime === t ? 'selected' : '' %>><%= t %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="md:col-span-2 lg:col-span-3">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Level of study</label>
+        <select name="levelOfStudy" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <% levels.forEach(function(l){ %>
+            <option <%= student.levelOfStudy === l ? 'selected' : '' %>><%= l %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Health -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-heart-pulse-fill text-brand-600"></i> Health &amp; Dietary
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Blood group</label>
+        <select name="bloodGroup" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <% bloodGroups.forEach(function(g){ %>
+            <option <%= student.bloodGroup === g ? 'selected' : '' %>><%= g %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Dietary preference</label>
+        <select name="dietary" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="">— Select —</option>
+          <% diets.forEach(function(d){ %>
+            <option value="<%= d.v %>" <%= student.dietary === d.v ? 'selected' : '' %>><%= d.l %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="md:col-span-2 lg:col-span-3">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Any diseases / medical conditions</label>
+        <textarea name="diseases" rows="2" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"><%= student.diseases || '' %></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Father -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-fill text-brand-600"></i> Father's Details
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input name="fatherName" value="<%= father.name || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Contact no.</label>
+        <input name="fatherPhone" value="<%= father.phone || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Occupation</label>
+        <input name="fatherOccupation" value="<%= father.occupation || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Mother -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-fill text-brand-600"></i> Mother's Details
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input name="motherName" value="<%= mother.name || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Contact no.</label>
+        <input name="motherPhone" value="<%= mother.phone || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Occupation</label>
+        <input name="motherOccupation" value="<%= mother.occupation || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Local guardian -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-people-fill text-brand-600"></i> Local Guardian
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input name="localGuardianName" value="<%= lg.name || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Relation with student</label>
+        <input name="localGuardianRelation" value="<%= lg.relation || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Phone no.</label>
+        <input name="localGuardianPhone" value="<%= lg.phone || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Occupation</label>
+        <input name="localGuardianOccupation" value="<%= lg.occupation || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-1 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-images text-brand-600"></i> Documents
+    </h3>
+    <p class="mb-4 text-xs text-ink-500">Upload only to replace the existing file</p>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Photo</label>
+        <% if (student.photo && student.photo.url) { %>
+          <img src="<%= student.photo.url %>" class="mb-2 h-24 w-24 rounded-lg object-cover border border-ink-200" />
+        <% } %>
+        <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-ink-500 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">ID proof</label>
+        <% if (student.idProof && student.idProof.url) { %>
+          <img src="<%= student.idProof.url %>" class="mb-2 h-24 rounded-lg object-cover border border-ink-200" />
+        <% } %>
+        <input type="file" name="idProof" accept="image/*" class="block w-full text-sm text-ink-500 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <a href="/students/<%= student.id %>" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i> Update
+    </button>
+  </div>
+</form>

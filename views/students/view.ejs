@@ -1,0 +1,374 @@
+<%
+  const father = student.father || {};
+  const mother = student.mother || {};
+  const lg     = student.localGuardian || {};
+  const dietLabel = {
+    veg: 'Vegetarian',
+    nonveg: 'Non-vegetarian',
+    eggOnly: 'Veg + Egg only',
+  }[student.dietary] || '—';
+  const currentStatus = student.status || 'active';
+  const statusTone = ({
+    active:   { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', icon: 'bi-check-circle-fill' },
+    on_leave: { bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-500',   icon: 'bi-pause-circle-fill' },
+    returned: { bg: 'bg-brand-50',   text: 'text-brand-700',   dot: 'bg-brand-500',   icon: 'bi-arrow-counterclockwise' },
+    left:     { bg: 'bg-ink-100',    text: 'text-ink-600',     dot: 'bg-ink-400',     icon: 'bi-box-arrow-right' },
+  }[currentStatus]);
+%>
+
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <a href="/students" class="text-sm text-ink-500 hover:text-ink-700">
+      <i class="bi bi-arrow-left"></i> Back to students
+    </a>
+    <h2 class="mt-1 text-2xl font-bold text-ink-900">
+      <%= student.name %>
+      <% if (student.nameNepali) { %>
+        <span class="text-lg font-normal text-ink-500">(<%= student.nameNepali %>)</span>
+      <% } %>
+    </h2>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="/students/<%= student.id %>/edit"
+       class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">
+      <i class="bi bi-pencil"></i> Edit
+    </a>
+  </div>
+</div>
+
+<%
+  // Payment history block — rendered twice with responsive visibility so it
+  // sits below the profile card on desktop (lg+) but at the very bottom of
+  // the stack on mobile.
+  const hasPayments = student.payments && student.payments.length;
+%>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <!-- Left column: profile + (desktop-only) payment history -->
+  <div class="space-y-6">
+    <!-- Profile card -->
+    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card text-center">
+      <% if (student.photo && student.photo.url) { %>
+        <img src="<%= student.photo.url %>" class="mx-auto h-32 w-32 rounded-full object-cover ring-4 ring-brand-50" />
+      <% } else { %>
+        <div class="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-brand-50 text-4xl font-bold text-brand-600 ring-4 ring-brand-100">
+          <%= student.name.charAt(0).toUpperCase() %>
+        </div>
+      <% } %>
+      <h3 class="mt-4 text-lg font-bold text-ink-900"><%= student.name %></h3>
+      <% if (student.nameNepali) { %>
+        <p class="text-sm text-ink-700"><%= student.nameNepali %></p>
+      <% } %>
+      <p class="mt-1 text-sm text-ink-500"><%= student.institute || 'No institute' %></p>
+
+      <div class="mt-4 flex flex-wrap justify-center gap-2">
+        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold <%= statusTone.bg %> <%= statusTone.text %>">
+          <i class="bi <%= statusTone.icon %>"></i>
+          <%= statusLabels[currentStatus] %>
+        </span>
+        <% if (room) { %>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <i class="bi bi-door-open-fill"></i> Room <%= room.roomNumber %>
+          </span>
+        <% } else { %>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-600">
+            <i class="bi bi-dash-circle"></i> Unassigned
+          </span>
+        <% } %>
+        <% if (student.bloodGroup) { %>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+            <i class="bi bi-droplet-fill"></i> <%= student.bloodGroup %>
+          </span>
+        <% } %>
+        <% if (fee && fee.status !== 'unknown') {
+             const ft = {
+               overdue: { c: 'bg-red-50 text-red-700',         i: 'bi-exclamation-triangle-fill', l: fee.daysOverdue + 'd overdue' },
+               due:     { c: 'bg-amber-50 text-amber-700',     i: 'bi-hourglass-split',           l: 'Due (' + fee.daysLeft + 'd left)' },
+               pending: { c: 'bg-emerald-50 text-emerald-700', i: 'bi-clock',                     l: fee.daysLeft + 'd until due' },
+             }[fee.status]; %>
+          <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold <%= ft.c %>">
+            <i class="bi <%= ft.i %>"></i> <%= ft.l %>
+          </span>
+        <% } %>
+      </div>
+
+      <!-- Status change actions -->
+      <div class="mt-5 border-t border-ink-100 pt-4 text-left">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">Lifecycle</p>
+        <%
+          // Define which transitions make sense from each state.
+          const transitions = {
+            active:   [{ k: 'on_leave', l: 'Mark on leave',    tone: 'amber',   icon: 'bi-pause-circle' },
+                       { k: 'left',     l: 'Mark as left',     tone: 'red',     icon: 'bi-box-arrow-right' }],
+            on_leave: [{ k: 'returned', l: 'Mark as returned', tone: 'brand',   icon: 'bi-arrow-counterclockwise' },
+                       { k: 'left',     l: 'Mark as left',     tone: 'red',     icon: 'bi-box-arrow-right' }],
+            returned: [{ k: 'on_leave', l: 'Mark on leave',    tone: 'amber',   icon: 'bi-pause-circle' },
+                       { k: 'left',     l: 'Mark as left',     tone: 'red',     icon: 'bi-box-arrow-right' }],
+            left:     [{ k: 'active',   l: 'Re-activate',      tone: 'emerald', icon: 'bi-arrow-clockwise' }],
+          }[currentStatus] || [];
+          const btnTone = {
+            amber:   'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200',
+            red:     'bg-red-50 text-red-700 hover:bg-red-100 border-red-200',
+            brand:   'bg-brand-50 text-brand-700 hover:bg-brand-100 border-brand-200',
+            emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200',
+          };
+          const confirmMsg = {
+            on_leave: 'Mark this student as on leave?',
+            returned: 'Mark this student as returned? Fee timer will restart from today.',
+            left:     'Mark this student as left? Their room will be freed.',
+            active:   'Re-activate this student?',
+          };
+        %>
+        <div class="flex flex-col gap-2">
+          <% transitions.forEach(function(t) { %>
+            <form method="POST" action="/students/<%= student.id %>/status"
+                  onsubmit="return confirm('<%= confirmMsg[t.k] %>')">
+              <input type="hidden" name="status" value="<%= t.k %>" />
+              <button class="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium <%= btnTone[t.tone] %>">
+                <i class="bi <%= t.icon %>"></i> <%= t.l %>
+              </button>
+            </form>
+          <% }) %>
+          <% if (!transitions.length) { %>
+            <p class="text-xs text-ink-500">No status changes available.</p>
+          <% } %>
+        </div>
+        <% if (student.statusChangedAt) { %>
+          <p class="mt-3 text-xs text-ink-500">
+            Last status change:
+            <%= new Date(student.statusChangedAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+          </p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Payment history (below profile on desktop only) -->
+    <% if (hasPayments) { %>
+      <div class="hidden lg:block rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-receipt"></i> Payment history
+          <span class="ml-auto rounded-full bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">
+            <%= student.payments.length %>
+          </span>
+        </h4>
+        <ul class="divide-y divide-ink-100">
+          <% [...student.payments].reverse().forEach(function(p) { %>
+            <li class="flex items-start justify-between gap-3 py-2.5 text-sm">
+              <div class="min-w-0">
+                <p class="font-semibold text-ink-900">
+                  <%= brand.currencySymbol %><%= p.amount %>
+                </p>
+                <p class="text-xs text-ink-500">
+                  <%= new Date(p.paidAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+                  <% if (p.collectedBy) { %> · by <%= p.collectedBy %><% } %>
+                </p>
+                <% if (p.note) { %>
+                  <p class="mt-0.5 text-xs italic text-ink-500 truncate"><%= p.note %></p>
+                <% } %>
+              </div>
+              <span class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium text-ink-600 capitalize">
+                <%= p.method %>
+              </span>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Right column: details -->
+  <div class="lg:col-span-2 space-y-6">
+    <!-- Personal -->
+    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+      <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+        <i class="bi bi-person-vcard"></i> Personal
+      </h4>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Email</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.email %></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Phone</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.phone %></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Date of birth</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.dob || '—' %></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Citizenship No.</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900 font-mono"><%= student.citizenNo || '—' %></dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium text-ink-500">Permanent address</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.address || '—' %></dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Education -->
+    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+      <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+        <i class="bi bi-mortarboard"></i> Education
+      </h4>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium text-ink-500">Institute</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.institute || '—' %></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Class time</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.classTime || '—' %></dd>
+        </div>
+        <div class="sm:col-span-3">
+          <dt class="text-xs font-medium text-ink-500">Level of study</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.levelOfStudy || '—' %></dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Health -->
+    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+      <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+        <i class="bi bi-heart-pulse"></i> Health &amp; Dietary
+      </h4>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Blood group</dt>
+          <dd class="mt-1 text-sm font-semibold text-red-700"><%= student.bloodGroup || '—' %></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-ink-500">Diet</dt>
+          <dd class="mt-1 text-sm font-medium text-ink-900"><%= dietLabel %></dd>
+        </div>
+        <div class="sm:col-span-3">
+          <dt class="text-xs font-medium text-ink-500">Diseases / conditions</dt>
+          <dd class="mt-1 text-sm text-ink-900 whitespace-pre-line"><%= student.diseases || '— None reported —' %></dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Parents -->
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-person"></i> Father
+        </h4>
+        <dl class="space-y-2 text-sm">
+          <div><dt class="text-xs text-ink-500">Name</dt><dd class="font-medium text-ink-900"><%= father.name || '—' %></dd></div>
+          <div><dt class="text-xs text-ink-500">Phone</dt><dd class="font-medium text-ink-900"><%= father.phone || '—' %></dd></div>
+          <div><dt class="text-xs text-ink-500">Occupation</dt><dd class="font-medium text-ink-900"><%= father.occupation || '—' %></dd></div>
+        </dl>
+      </div>
+      <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-person"></i> Mother
+        </h4>
+        <dl class="space-y-2 text-sm">
+          <div><dt class="text-xs text-ink-500">Name</dt><dd class="font-medium text-ink-900"><%= mother.name || '—' %></dd></div>
+          <div><dt class="text-xs text-ink-500">Phone</dt><dd class="font-medium text-ink-900"><%= mother.phone || '—' %></dd></div>
+          <div><dt class="text-xs text-ink-500">Occupation</dt><dd class="font-medium text-ink-900"><%= mother.occupation || '—' %></dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Local guardian -->
+    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+      <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+        <i class="bi bi-people"></i> Local guardian
+      </h4>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div><dt class="text-xs text-ink-500">Name</dt><dd class="text-sm font-medium text-ink-900"><%= lg.name || '—' %></dd></div>
+        <div><dt class="text-xs text-ink-500">Relation</dt><dd class="text-sm font-medium text-ink-900"><%= lg.relation || '—' %></dd></div>
+        <div><dt class="text-xs text-ink-500">Phone</dt><dd class="text-sm font-medium text-ink-900"><%= lg.phone || '—' %></dd></div>
+        <div><dt class="text-xs text-ink-500">Occupation</dt><dd class="text-sm font-medium text-ink-900"><%= lg.occupation || '—' %></dd></div>
+      </dl>
+    </div>
+
+    <% if (student.idProof && student.idProof.url) { %>
+      <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-card-image"></i> ID Proof
+        </h4>
+        <a href="<%= student.idProof.url %>" target="_blank">
+          <img src="<%= student.idProof.url %>" class="max-h-96 rounded-lg border border-ink-200" />
+        </a>
+      </div>
+    <% } %>
+
+    <!-- Fees -->
+    <% if (fee && fee.status !== 'unknown') { %>
+      <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-cash-coin"></i> Fee status
+        </h4>
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Enrolled</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900">
+              <%= new Date(fee.baseDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Current cycle</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900">#<%= fee.cycleNumber %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Next due</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900">
+              <%= new Date(fee.dueDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Pay by</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900">
+              <%= new Date(fee.deadline).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </dd>
+          </div>
+        </dl>
+        <a href="/fees" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          <i class="bi bi-cash-coin"></i> Go to fees
+        </a>
+      </div>
+    <% } %>
+
+    <!-- Payment history is rendered in the left column on desktop (below the profile)
+         and at the very bottom of the page on mobile — see the mobile-only block outside this grid. -->
+  </div>
+</div>
+
+<!-- Payment history (mobile only — sits at the very bottom of the stack) -->
+<% if (hasPayments) { %>
+  <div class="mt-6 lg:hidden rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+      <i class="bi bi-receipt"></i> Payment history
+      <span class="ml-auto rounded-full bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">
+        <%= student.payments.length %>
+      </span>
+    </h4>
+    <ul class="divide-y divide-ink-100">
+      <% [...student.payments].reverse().forEach(function(p) { %>
+        <li class="flex items-start justify-between gap-3 py-2.5 text-sm">
+          <div class="min-w-0">
+            <p class="font-semibold text-ink-900">
+              <%= brand.currencySymbol %><%= p.amount %>
+            </p>
+            <p class="text-xs text-ink-500">
+              <%= new Date(p.paidAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+              <% if (p.collectedBy) { %> · by <%= p.collectedBy %><% } %>
+            </p>
+            <% if (p.note) { %>
+              <p class="mt-0.5 text-xs italic text-ink-500 truncate"><%= p.note %></p>
+            <% } %>
+          </div>
+          <span class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium text-ink-600 capitalize">
+            <%= p.method %>
+          </span>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+<% } %>
+  </div>
+</div>

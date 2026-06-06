@@ -1,0 +1,100 @@
+<aside id="sidebar"
+       class="fixed inset-y-0 left-0 z-40 w-72 transform border-r border-ink-200 bg-white transition-transform duration-300 lg:translate-x-0 -translate-x-full">
+  <div class="flex h-16 items-center justify-between border-b border-ink-200 px-6">
+    <a href="/dashboard" class="flex items-center gap-2">
+      <% if (brand && brand.iconUrl) { %>
+        <img src="<%= brand.iconUrl %>" alt="" class="h-9 w-9 rounded-lg object-cover ring-1 ring-ink-200" />
+      <% } else { %>
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+          <i class="bi bi-building text-lg"></i>
+        </span>
+      <% } %>
+      <span class="text-lg font-bold text-ink-900 truncate"><%= brand && brand.appName ? brand.appName : 'Hostel Manager' %></span>
+    </a>
+    <button id="sidebar-close" class="lg:hidden text-ink-500 hover:text-ink-800">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <nav class="px-4 py-6">
+    <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Menu</p>
+    <ul class="space-y-1">
+      <li>
+        <a href="/dashboard"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath === '/dashboard' ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-grid-1x2-fill text-lg"></i>
+          Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="/students"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath.startsWith('/students') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-people-fill text-lg"></i>
+          Students
+        </a>
+      </li>
+      <li>
+        <a href="/rooms"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath.startsWith('/rooms') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-door-closed-fill text-lg"></i>
+          Rooms
+        </a>
+      </li>
+      <li>
+        <a href="/fees"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath.startsWith('/fees') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-cash-coin text-lg"></i>
+          Fees
+        </a>
+      </li>
+      <% if (currentUser && currentUser.role === 'admin') { %>
+        <li>
+          <a href="/users"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/users') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-person-badge-fill text-lg"></i>
+            Users
+          </a>
+        </li>
+      <% } %>
+    </ul>
+
+    <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
+    <ul class="space-y-1">
+      <li>
+        <a href="/settings"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath.startsWith('/settings') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-gear-fill text-lg"></i>
+          Settings
+        </a>
+      </li>
+      <li>
+        <a href="/auth/logout"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-red-50 hover:text-red-700">
+          <i class="bi bi-box-arrow-right text-lg"></i>
+          Logout
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="absolute bottom-0 left-0 right-0 border-t border-ink-200 p-4">
+    <div class="flex items-center gap-3 rounded-lg bg-ink-50 p-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-white font-semibold">
+        <%= currentUser.name.charAt(0).toUpperCase() %>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-semibold text-ink-900"><%= currentUser.name %></p>
+        <p class="truncate text-xs text-ink-500"><%= currentUser.email %></p>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div id="sidebar-backdrop"
+     class="fixed inset-0 z-30 hidden bg-ink-900/50 lg:hidden"></div>

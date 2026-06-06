@@ -1,0 +1,50 @@
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-ink-900">Add Room</h2>
+  <p class="mt-1 text-sm text-ink-500">Create a new room in the hostel</p>
+</div>
+
+<form method="POST" action="/rooms" class="space-y-6">
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Room number *</label>
+        <input name="roomNumber" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Type</label>
+        <select name="type" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option>Standard</option>
+          <option>Deluxe</option>
+          <option>AC</option>
+          <option>Non-AC</option>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Capacity *</label>
+        <input type="number" min="1" name="capacity" value="2" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Floor</label>
+        <input name="floor" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Rent (<%= brand.currencySymbol %>/month)</label>
+        <input type="number" min="0" name="rent" value="0" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Status</label>
+        <select name="status" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <option value="available">Available</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <a href="/rooms" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i> Save Room
+    </button>
+  </div>
+</form>

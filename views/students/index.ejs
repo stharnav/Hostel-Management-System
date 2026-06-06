@@ -1,0 +1,190 @@
+<%
+  // Small helper to keep the badge tone consistent everywhere.
+  function statusTone(s) {
+    return ({
+      active:   { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+      on_leave: { bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-500' },
+      returned: { bg: 'bg-brand-50',   text: 'text-brand-700',   dot: 'bg-brand-500' },
+      left:     { bg: 'bg-ink-100',    text: 'text-ink-600',     dot: 'bg-ink-400' },
+    }[s] || { bg: 'bg-ink-100', text: 'text-ink-600', dot: 'bg-ink-400' });
+  }
+%>
+
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">Students</h2>
+    <p class="mt-1 text-sm text-ink-500">Manage residents and their records</p>
+  </div>
+  <a href="/students/add"
+     class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+    <i class="bi bi-person-plus-fill"></i>
+    Add Student
+  </a>
+</div>
+
+<!-- Search + filter -->
+<form method="GET" action="/students" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+  <div class="relative flex-1">
+    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
+      <i class="bi bi-search"></i>
+    </span>
+    <input type="search" name="q" value="<%= q %>" placeholder="Search by name, email, phone, institute…"
+           class="w-full rounded-lg border border-ink-200 bg-white py-2.5 pl-10 pr-10 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+    <% if (q) { %>
+      <a href="/students?status=<%= filter %>"
+         class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+         title="Clear search">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    <% } %>
+  </div>
+  <input type="hidden" name="status" value="<%= filter %>" />
+  <button type="submit"
+          class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">
+    Search
+  </button>
+</form>
+
+<!-- Filter pills -->
+<%
+  const filterDefs = [
+    { k: 'all',      l: 'All' },
+    { k: 'active',   l: 'Active' },
+    { k: 'on_leave', l: 'On leave' },
+    { k: 'returned', l: 'Returned' },
+    { k: 'left',     l: 'Left hostel' },
+  ];
+%>
+<div class="mb-4 flex flex-wrap items-center gap-2">
+  <% filterDefs.forEach(function(f) {
+       const active = f.k === filter;
+       const url = '/students?status=' + f.k + (q ? ('&q=' + encodeURIComponent(q)) : ''); %>
+    <a href="<%= url %>"
+       class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition
+              <%= active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-100' %>">
+      <%= f.l %>
+      <span class="rounded-full px-1.5 text-xs
+                   <%= active ? 'bg-white/20' : 'bg-ink-100 text-ink-600' %>"><%= counts[f.k] || 0 %></span>
+    </a>
+  <% }) %>
+</div>
+
+<div class="rounded-2xl border border-ink-200 bg-white shadow-card">
+  <% if (!students.length) { %>
+    <div class="px-6 py-16 text-center">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-ink-100 text-ink-400">
+        <i class="bi bi-search text-3xl"></i>
+      </div>
+      <h3 class="text-base font-semibold text-ink-900">
+        <% if (q) { %>No students match "<%= q %>"<% } else { %>No students yet<% } %>
+      </h3>
+      <p class="mt-1 text-sm text-ink-500">
+        <% if (q || filter !== 'all') { %>
+          Try clearing the search or switching filters.
+        <% } else { %>
+          Get started by adding your first student.
+        <% } %>
+      </p>
+      <% if (!q && filter === 'all') { %>
+        <a href="/students/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          <i class="bi bi-plus-lg"></i> Add student
+        </a>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-ink-200">
+        <thead class="bg-ink-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Student</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Contact</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Institute</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Blood</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Room</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Status</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-500">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ink-100 bg-white">
+          <% students.forEach(function(s) {
+               const st = s.status || 'active';
+               const tone = statusTone(st);
+               const isLeft = st === 'left'; %>
+            <tr class="hover:bg-ink-50 transition <%= isLeft ? 'opacity-70' : '' %>">
+              <td class="whitespace-nowrap px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <% if (s.photo && s.photo.url) { %>
+                    <img src="<%= s.photo.url %>" class="h-10 w-10 rounded-full object-cover" alt="" />
+                  <% } else { %>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 font-semibold">
+                      <%= s.name.charAt(0).toUpperCase() %>
+                    </div>
+                  <% } %>
+                  <div>
+                    <p class="text-sm font-semibold text-ink-900"><%= s.name %></p>
+                    <% if (s.nameNepali) { %>
+                      <p class="text-xs text-ink-500"><%= s.nameNepali %></p>
+                    <% } else { %>
+                      <p class="text-xs text-ink-500"><%= s.email %></p>
+                    <% } %>
+                  </div>
+                </div>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700">
+                <div><%= s.phone %></div>
+                <div class="text-xs text-ink-500"><%= s.email %></div>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700">
+                <div><%= s.institute || '—' %></div>
+                <% if (s.levelOfStudy) { %>
+                  <div class="text-xs text-ink-500"><%= s.levelOfStudy %></div>
+                <% } %>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4">
+                <% if (s.bloodGroup) { %>
+                  <span class="inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700"><%= s.bloodGroup %></span>
+                <% } else { %>
+                  <span class="text-xs text-ink-400">—</span>
+                <% } %>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4">
+                <% if (s.roomId) { %>
+                  <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Assigned</span>
+                <% } else { %>
+                  <span class="inline-flex rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-medium text-ink-600">Unassigned</span>
+                <% } %>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold <%= tone.bg %> <%= tone.text %>">
+                  <span class="h-1.5 w-1.5 rounded-full <%= tone.dot %>"></span>
+                  <%= statusLabels[st] %>
+                </span>
+              </td>
+              <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
+                <div class="inline-flex items-center gap-1">
+                  <a href="/students/<%= s.id %>" title="View"
+                     class="rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="/students/<%= s.id %>/edit" title="Edit"
+                     class="rounded-lg p-2 text-ink-500 hover:bg-amber-50 hover:text-amber-700">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <% if (currentUser.role === 'admin') { %>
+                    <form method="POST" action="/students/<%= s.id %>?_method=DELETE" class="inline"
+                          onsubmit="return confirm('Delete this student?')">
+                      <button type="submit" title="Delete"
+                              class="rounded-lg p-2 text-ink-500 hover:bg-red-50 hover:text-red-700">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

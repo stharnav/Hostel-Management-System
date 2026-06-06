@@ -1,0 +1,22 @@
+<% if (success && success.length) { %>
+  <% success.forEach(function(msg) { %>
+    <div class="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800" role="alert">
+      <i class="bi bi-check-circle-fill text-lg"></i>
+      <p class="flex-1 text-sm font-medium"><%= msg %></p>
+      <button onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  <% }) %>
+<% } %>
+<% if (error && error.length) { %>
+  <% error.forEach(function(msg) { %>
+    <div class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
+      <i class="bi bi-exclamation-triangle-fill text-lg"></i>
+      <p class="flex-1 text-sm font-medium"><%= msg %></p>
+      <button onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  <% }) %>
+<% } %>
