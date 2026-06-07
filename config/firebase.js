@@ -6,20 +6,52 @@ const path = require('path');
 const fs = require('fs');
 const admin = require('firebase-admin');
 
-const keyPath = path.resolve(
-  process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './config/serviceAccountKey.json'
-);
+const possiblePaths = [
+  './config/serviceAccountKey.json',
+  './serviceAccountKey.json',
+  process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+].filter(Boolean);
 
-if (!fs.existsSync(keyPath)) {
+let serviceAccount = null;
+
+// Try file locations first
+for (const p of possiblePaths) {
+  const fullPath = path.resolve(p);
+
+  if (fs.existsSync(fullPath)) {
+    console.log(`[firebase] Using service account file: ${fullPath}`);
+    serviceAccount = require(fullPath);
+    break;
+  }
+}
+
+// Fallback to environment variable
+if (!serviceAccount && process.env.FIREBASE_SERVICE_ACCOUNT) {
+  console.log('[firebase] Using service account from environment variable');
+
+  try {
+    serviceAccount = JSON.parse(
+      process.env.FIREBASE_SERVICE_ACCOUNT
+    );
+  } catch (err) {
+    console.error(
+      '[firebase] FIREBASE_SERVICE_ACCOUNT contains invalid JSON'
+    );
+    process.exit(1);
+  }
+}
+
+// No credentials found
+if (!serviceAccount) {
   console.error(
-    `\n[firebase] Service account key not found at: ${keyPath}\n` +
-      `Download it from Firebase Console > Project Settings > Service Accounts ` +
-      `and save it there, or set FIREBASE_SERVICE_ACCOUNT_PATH in .env.\n`
+    '\n[firebase] No Firebase credentials found.\n' +
+    'Either:\n' +
+    '  1. Add config/serviceAccountKey.json\n' +
+    '  2. Set FIREBASE_SERVICE_ACCOUNT_PATH\n' +
+    '  3. Set FIREBASE_SERVICE_ACCOUNT environment variable\n'
   );
   process.exit(1);
 }
-
-const serviceAccount = require(keyPath);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
