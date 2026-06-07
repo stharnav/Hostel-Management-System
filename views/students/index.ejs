@@ -15,11 +15,13 @@
     <h2 class="text-2xl font-bold text-ink-900">Students</h2>
     <p class="mt-1 text-sm text-ink-500">Manage residents and their records</p>
   </div>
-  <a href="/students/add"
-     class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
-    <i class="bi bi-person-plus-fill"></i>
-    Add Student
-  </a>
+  <% if (can('students.create')) { %>
+    <a href="/students/add"
+       class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-person-plus-fill"></i>
+      Add Student
+    </a>
+  <% } %>
 </div>
 
 <!-- Search + filter -->
@@ -162,15 +164,19 @@
               </td>
               <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
                 <div class="inline-flex items-center gap-1">
-                  <a href="/students/<%= s.id %>" title="View"
-                     class="rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700">
-                    <i class="bi bi-eye"></i>
-                  </a>
-                  <a href="/students/<%= s.id %>/edit" title="Edit"
-                     class="rounded-lg p-2 text-ink-500 hover:bg-amber-50 hover:text-amber-700">
-                    <i class="bi bi-pencil"></i>
-                  </a>
-                  <% if (currentUser.role === 'admin') { %>
+                  <% if (can('students.viewProfile')) { %>
+                    <a href="/students/<%= s.id %>" title="View"
+                       class="rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  <% } %>
+                  <% if (can('students.edit')) { %>
+                    <a href="/students/<%= s.id %>/edit" title="Edit"
+                       class="rounded-lg p-2 text-ink-500 hover:bg-amber-50 hover:text-amber-700">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  <% } %>
+                  <% if (can('students.delete')) { %>
                     <form method="POST" action="/students/<%= s.id %>?_method=DELETE" class="inline"
                           onsubmit="return confirm('Delete this student?')">
                       <button type="submit" title="Delete"

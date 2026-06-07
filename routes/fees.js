@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/feesController');
-const { ensureAuth } = require('../middleware/auth');
+const { ensureAuth, ensurePermission } = require('../middleware/auth');
 
 router.use(ensureAuth);
 
-router.get('/', ctrl.list);
-router.post('/:id/pay', ctrl.markPaid);
+router.get('/', ensurePermission('fees.view'), ctrl.list);
+router.post('/:id/pay', ensurePermission('fees.recordPayment'), ctrl.markPaid);
 
 module.exports = router;

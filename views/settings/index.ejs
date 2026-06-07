@@ -1,7 +1,26 @@
 <div class="mb-6">
   <h2 class="text-2xl font-bold text-ink-900">Settings</h2>
-  <p class="mt-1 text-sm text-ink-500">Branding, usage, and system info</p>
+  <p class="mt-1 text-sm text-ink-500">Branding, roles, usage, and system info</p>
 </div>
+
+<% if (currentUser.role === 'admin') { %>
+  <!-- Quick link to role management. Kept compact so the page still
+       leads with branding and system info. -->
+  <a href="/settings/roles"
+     class="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 via-white to-emerald-50 p-4 shadow-card transition hover:border-brand-300 hover:shadow-soft">
+    <div class="flex items-center gap-3">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow">
+        <i class="bi bi-shield-lock-fill text-xl"></i>
+      </div>
+      <div>
+        <p class="text-sm font-medium text-ink-500">Access control</p>
+        <p class="text-base font-semibold text-ink-900">User Roles &amp; Permissions</p>
+        <p class="text-xs text-ink-500">Create roles and choose what each user type can do.</p>
+      </div>
+    </div>
+    <i class="bi bi-chevron-right text-2xl text-brand-500"></i>
+  </a>
+<% } %>
 
 <!-- Branding -->
 <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">

@@ -10,6 +10,8 @@ const bcrypt = require('bcryptjs');
 
 const { db } = require('./config/firebase');
 const appSettings = require('./utils/appSettings');
+const { resolveUserPermissions } = require('./utils/permissions');
+const { seedDefaultRoles } = require('./controllers/rolesController');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -17,6 +19,7 @@ const studentRoutes = require('./routes/students');
 const roomRoutes = require('./routes/rooms');
 const feesRoutes = require('./routes/fees');
 const settingsRoutes = require('./routes/settings');
+const rolesRoutes = require('./routes/roles');
 const kitchenRoutes = require('./routes/kitchen');
 const profileRoutes = require('./routes/profile');
 const { ensureAuth } = require('./middleware/auth');
@@ -45,7 +48,10 @@ app.use(
 );
 app.use(flash());
 
-// Expose common locals to every view.
+// Expose common locals to every view. We also keep the session's
+// `permissions` Set fresh on every request — that way a role edit in one tab
+// takes effect in another tab within a single navigation, without forcing a
+// re-login. The Set is also exposed as `currentUser.permissions` for views.
 app.use(async (req, res, next) => {
   res.locals.currentUser = req.session.user || null;
   res.locals.success = req.flash('success');
@@ -56,6 +62,39 @@ app.use(async (req, res, next) => {
   } catch {
     res.locals.brand = { appName: 'Hostel Manager', iconUrl: null };
   }
+  if (req.session.user) {
+    // Rehydrate the permission Set from the latest user/role docs. Admins
+    // are short-circuited inside resolveUserPermissions.
+    try {
+      const userDoc = await db.collection('users').doc(req.session.user.id).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const perms = await resolveUserPermissions(db, userData);
+        // Refresh the session too, so ensurePermission() can use it without
+        // touching the DB on every request.
+        req.session.user.permissions = perms;
+        // Keep display fields in sync in case the user was renamed.
+        req.session.user.name = userData.name;
+        req.session.user.email = userData.email;
+        // Mark the session dirty so express-session persists the new
+        // permissions Set on this response. Without an explicit touch()
+        // the save is lazy and can be skipped if the response is a
+        // redirect (Express historically doesn't always flush).
+        req.session.touch();
+      }
+    } catch (err) {
+      console.warn('[session] failed to refresh permissions:', err.message);
+    }
+  }
+  // can('students.create') — true if the signed-in user has that permission.
+  // Admins always pass. Templates use this to gate UI controls and sidebar
+  // entries without writing the role check by hand.
+  res.locals.can = (key) => {
+    const u = req.session.user;
+    if (!u) return false;
+    if (u.role === 'admin') return true;
+    return !!(u.permissions && u.permissions.has(key));
+  };
   next();
 });
 
@@ -94,6 +133,7 @@ app.use('/students', studentRoutes);
 app.use('/rooms', roomRoutes);
 app.use('/fees', feesRoutes);
 app.use('/settings', settingsRoutes);
+app.use('/settings/roles', rolesRoutes);
 app.use('/kitchen', kitchenRoutes);
 app.use('/profile', profileRoutes);
 
@@ -128,6 +168,12 @@ async function bootstrapAdmin() {
     const reset = process.env.BOOTSTRAP_ADMIN_RESET !== 'false';
 
     const passwordHash = await bcrypt.hash(password, 10);
+
+    // Make sure the default roles exist before linking the admin to one.
+    await seedDefaultRoles();
+    const adminRoleSnap = await db.collection('roles').where('key', '==', 'admin').limit(1).get();
+    const adminRoleId = adminRoleSnap.empty ? null : adminRoleSnap.docs[0].id;
+
     const existing = await db
       .collection('users')
       .where('email', '==', email)
@@ -140,6 +186,7 @@ async function bootstrapAdmin() {
         email,
         passwordHash,
         role: 'admin',
+        roleId: adminRoleId,
         createdAt: new Date().toISOString(),
       });
       console.log(
@@ -150,7 +197,9 @@ async function bootstrapAdmin() {
     }
 
     if (reset) {
-      await existing.docs[0].ref.update({ passwordHash, role: 'admin' });
+      const update = { passwordHash, role: 'admin' };
+      if (adminRoleId) update.roleId = adminRoleId;
+      await existing.docs[0].ref.update(update);
       console.log(
         `[bootstrap] Admin password reset for ${email} from BOOTSTRAP_ADMIN_PASSWORD ` +
           `(disable with BOOTSTRAP_ADMIN_RESET=false in .env)`

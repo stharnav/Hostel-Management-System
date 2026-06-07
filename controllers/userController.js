@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { db } = require('../config/firebase');
 
 const usersCol = () => db.collection('users');
+const rolesCol = () => db.collection('roles');
 
 // Same vocabulary the students collection uses, so the kitchen dashboard can
 // roll both populations into one meal plan.
@@ -15,21 +16,94 @@ const ROLES = ['admin', 'staff'];
 // treated as active too (so a one-time migration isn't required).
 const isActive = (u) => u.active === undefined ? true : !!u.active;
 
+// Resolve the roleId for a new or edited user. The form submits the chosen
+// role's document id, but we also accept the legacy `role` radio (admin /
+// staff) and convert it to the matching role doc for backward compatibility.
+async function resolveRoleId(body) {
+  if (body.roleId) return body.roleId;
+  const key = ROLES.includes(body.role) ? body.role : 'staff';
+  const snap = await rolesCol().where('key', '==', key).limit(1).get();
+  if (snap.empty) return null;
+  return snap.docs[0].id;
+}
+
+// Look up a role doc's `key` (e.g. 'admin' / 'staff') from its id. Returns
+// null if the roleId is missing or the doc doesn't exist. Used to keep the
+// legacy `role` field in sync with the chosen roleId.
+async function lookupRoleKey(roleId) {
+  if (!roleId) return null;
+  try {
+    const doc = await rolesCol().doc(roleId).get();
+    if (!doc.exists) return null;
+    return doc.data().key || null;
+  } catch (err) {
+    console.warn('[users] lookupRoleKey failed:', err.message);
+    return null;
+  }
+}
+
+// Fetch the list of roles for the add/edit forms. We re-fetch on every render
+// so newly-created roles show up without a server restart.
+async function loadRoleChoices() {
+  const snap = await rolesCol().orderBy('name', 'asc').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 // Pull the writable user payload from req.body. Keeps create/update DRY.
+//
+// Important: we deliberately do NOT default `role` to 'staff' when it's
+// missing. The new add/edit form posts `roleId` (a Firestore doc id) instead
+// of the legacy `admin`/`staff` radio, so leaving the legacy field undefined
+// lets `resolveRoleId()` figure it out from the roleId — and `resolveUserPermissions`
+// (in utils/permissions.js) trusts roleId as the source of truth.
 function readUserBody(body) {
-  const role = ROLES.includes(body.role) ? body.role : 'staff';
+  const role = ROLES.includes(body.role) ? body.role : null;
   const dietary = DIET_OPTIONS.includes(body.dietary) ? body.dietary : 'veg';
   return { name: (body.name || '').trim(), email: (body.email || '').trim(), role, dietary };
 }
 
 exports.list = async (req, res) => {
-  const snap = await usersCol().orderBy('createdAt', 'desc').get();
-  const users = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const [snap, roles] = await Promise.all([
+    usersCol().orderBy('createdAt', 'desc').get(),
+    loadRoleChoices(),
+  ]);
+  // Build a quick lookup so the view can show the role name next to each user.
+  const rolesById = new Map(roles.map((r) => [r.id, r]));
+
+  // Self-healing: any user whose legacy `role` field disagrees with the
+  // roleId's `key` was created during the brief window when readUserBody
+  // hard-coded `role: 'staff'`. Fix it on the fly so the user list pill and
+  // the navbar badge reflect the actual role. Idempotent — runs only when
+  // there's a real mismatch.
+  const fixes = [];
+  const users = snap.docs.map((d) => {
+    const data = d.data();
+    const roleDoc = data.roleId ? rolesById.get(data.roleId) : null;
+    const expectedKey = roleDoc ? roleDoc.key : null;
+    if (expectedKey && data.role !== expectedKey) {
+      fixes.push(d.ref.update({
+        role: expectedKey,
+        updatedAt: new Date().toISOString(),
+      }));
+    }
+    return {
+      id: d.id,
+      ...data,
+      roleName: roleDoc ? roleDoc.name : null,
+    };
+  });
+  if (fixes.length) {
+    Promise.all(fixes).catch((err) =>
+      console.warn('[users] role backfill failed:', err.message)
+    );
+  }
+
   res.render('users/index', { title: 'Users', users, dietLabels: DIET_LABELS });
 };
 
-exports.addForm = (req, res) => {
-  res.render('users/add', { title: 'Add User', dietLabels: DIET_LABELS, values: {} });
+exports.addForm = async (req, res) => {
+  const roles = await loadRoleChoices();
+  res.render('users/add', { title: 'Add User', dietLabels: DIET_LABELS, values: {}, roles });
 };
 
 exports.create = async (req, res) => {
@@ -50,8 +124,17 @@ exports.create = async (req, res) => {
       return res.redirect('/users/add');
     }
     const passwordHash = await bcrypt.hash(password, 10);
+    const roleId = await resolveRoleId(req.body);
+    // Keep the legacy `role` field in sync with the chosen roleId so the
+    // user list pill and the navbar badge stay accurate. The roleId doc
+    // wins for permission checks (see resolveUserPermissions).
+    const roleKey = await lookupRoleKey(roleId);
     await usersCol().add({
       ...data,
+      // If the form sent roleId, it overrides whatever the form sent for the
+      // legacy `role` field. If it didn't, fall back to whatever was posted.
+      role: roleKey || data.role || 'staff',
+      roleId: roleId || null,
       passwordHash,
       active: true,
       createdAt: new Date().toISOString(),
@@ -67,7 +150,10 @@ exports.create = async (req, res) => {
 };
 
 exports.editForm = async (req, res) => {
-  const doc = await usersCol().doc(req.params.id).get();
+  const [doc, roles] = await Promise.all([
+    usersCol().doc(req.params.id).get(),
+    loadRoleChoices(),
+  ]);
   if (!doc.exists) {
     req.flash('error', 'User not found');
     return res.redirect('/users');
@@ -76,6 +162,7 @@ exports.editForm = async (req, res) => {
     title: 'Edit User',
     user: { id: doc.id, ...doc.data() },
     dietLabels: DIET_LABELS,
+    roles,
   });
 };
 
@@ -101,6 +188,16 @@ exports.update = async (req, res) => {
       }
     }
     const update = { ...data, updatedAt: new Date().toISOString() };
+
+    // Role assignment — pick up the roleId from the form, falling back to
+    // the legacy `role` radio if it's still being posted by old clients.
+    update.roleId = await resolveRoleId(req.body);
+
+    // Keep the legacy `role` field in sync with the chosen roleId so the
+    // user list pill and the navbar badge stay accurate. The roleId is the
+    // source of truth for permission checks.
+    const roleKey = await lookupRoleKey(update.roleId);
+    if (roleKey) update.role = roleKey;
 
     // Optional password reset — only when a value is provided.
     const password = req.body.password || '';

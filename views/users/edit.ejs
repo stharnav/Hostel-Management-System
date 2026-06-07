@@ -1,6 +1,6 @@
 <div class="mb-6">
   <h2 class="text-2xl font-bold text-ink-900">Edit User</h2>
-  <p class="mt-1 text-sm text-ink-500">Update account details and dietary preference</p>
+  <p class="mt-1 text-sm text-ink-500">Update account details, role, and dietary preference</p>
 </div>
 
 <form method="POST" action="/users/<%= user.id %>?_method=PUT" class="space-y-6">
@@ -24,10 +24,18 @@
       </div>
       <div>
         <label class="mb-1.5 block text-sm font-medium text-ink-700">Role *</label>
-        <select name="role" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
-          <option value="staff" <%= user.role === 'staff' ? 'selected' : '' %>>Staff</option>
-          <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
+        <select name="roleId" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+          <% roles.forEach(function(r) { %>
+            <option value="<%= r.id %>" <%= user.roleId === r.id ? 'selected' : '' %>>
+              <%= r.name %><%= r.isSystem ? '' : ' (custom)' %>
+            </option>
+          <% }) %>
         </select>
+        <p class="mt-1 text-xs text-ink-500">
+          Need a different role?
+          <a href="/settings/roles" class="font-medium text-brand-600 hover:underline">Manage roles</a>
+        </p>
+        <input type="hidden" name="role" value="<%= user.role || 'staff' %>" />
       </div>
       <div class="md:col-span-2">
         <label class="mb-1.5 block text-sm font-medium text-ink-700">Dietary preference (for kitchen)</label>

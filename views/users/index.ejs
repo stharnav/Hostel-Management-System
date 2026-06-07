@@ -44,10 +44,17 @@
             </td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700"><%= u.email %></td>
             <td class="whitespace-nowrap px-6 py-4">
-              <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase
-                           <%= u.role === 'admin' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700' %>">
-                <%= u.role %>
-              </span>
+              <% if (u.roleName) { %>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+                  <i class="bi bi-shield-lock-fill"></i>
+                  <%= u.roleName %>
+                </span>
+              <% } else { %>
+                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase
+                             <%= u.role === 'admin' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700' %>">
+                  <%= u.role %>
+                </span>
+              <% } %>
             </td>
             <td class="whitespace-nowrap px-6 py-4">
               <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase <%= dietStyle %>">

@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/userController');
-const { ensureRole } = require('../middleware/auth');
+const { ensureAuth, ensurePermission } = require('../middleware/auth');
 
-// Admin-only — only admins manage other accounts.
-router.use(ensureRole('admin'));
+router.use(ensureAuth);
 
-router.get('/', ctrl.list);
-router.get('/add', ctrl.addForm);
-router.post('/', ctrl.create);
-router.get('/:id/edit', ctrl.editForm);
-router.put('/:id', ctrl.update);
-router.post('/:id/toggle-active', ctrl.toggleActive);
-router.delete('/:id', ctrl.remove);
+router.get('/', ensurePermission('users.view'), ctrl.list);
+router.get('/add', ensurePermission('users.create'), ctrl.addForm);
+router.post('/', ensurePermission('users.create'), ctrl.create);
+router.get('/:id/edit', ensurePermission('users.edit'), ctrl.editForm);
+router.put('/:id', ensurePermission('users.edit'), ctrl.update);
+router.post('/:id/toggle-active', ensurePermission('users.activate'), ctrl.toggleActive);
+router.delete('/:id', ensurePermission('users.delete'), ctrl.remove);
 
 module.exports = router;

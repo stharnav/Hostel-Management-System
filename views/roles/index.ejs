@@ -1,0 +1,87 @@
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">User Roles</h2>
+    <p class="mt-1 text-sm text-ink-500">
+      Define what each type of user can do — create students, edit records, collect fees, and so on.
+    </p>
+  </div>
+  <a href="/settings/roles/add"
+     class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+    <i class="bi bi-shield-plus"></i>
+    New Role
+  </a>
+</div>
+
+<%
+  // Total number of grants in a role — used to summarize the role at a glance.
+  const totalGrants = (perms) => {
+    let n = 0;
+    Object.keys(perms || {}).forEach((g) => {
+      Object.keys(perms[g] || {}).forEach((a) => { if (perms[g][a]) n += 1; });
+    });
+    return n;
+  };
+%>
+
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <% roles.forEach(function(r) {
+       const count = counts[r.id] || 0;
+       const grants = totalGrants(r.permissions);
+  %>
+    <div class="rounded-2xl border border-ink-200 bg-white p-5 shadow-card">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <i class="bi bi-shield-lock-fill text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-semibold text-ink-900"><%= r.name %></h3>
+              <% if (r.isSystem) { %>
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                  <i class="bi bi-stars"></i> Built-in
+                </span>
+              <% } %>
+            </div>
+            <p class="font-mono text-xs text-ink-400"><%= r.key %></p>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-3 text-sm text-ink-600 line-clamp-2"><%= r.description || '—' %></p>
+
+      <dl class="mt-4 grid grid-cols-2 gap-3 text-center">
+        <div class="rounded-lg bg-ink-50 px-3 py-2">
+          <dt class="text-[10px] font-semibold uppercase tracking-wider text-ink-500">Users</dt>
+          <dd class="mt-0.5 text-lg font-bold text-ink-900"><%= count %></dd>
+        </div>
+        <div class="rounded-lg bg-ink-50 px-3 py-2">
+          <dt class="text-[10px] font-semibold uppercase tracking-wider text-ink-500">Permissions</dt>
+          <dd class="mt-0.5 text-lg font-bold text-ink-900"><%= grants %></dd>
+        </div>
+      </dl>
+
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <a href="/settings/roles/<%= r.id %>/edit"
+           class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-ink-50">
+          <i class="bi bi-pencil-square"></i> Edit
+        </a>
+        <% if (!r.isSystem) { %>
+          <form method="POST" action="/settings/roles/<%= r.id %>?_method=DELETE" class="inline"
+                onsubmit="return confirm('Delete this role? <%= count %> user<%= count === 1 ? '' : 's' %> will be moved to Staff.')">
+            <button class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+
+  <a href="/settings/roles/add"
+     class="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink-200 bg-white p-6 text-ink-400 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600">
+    <i class="bi bi-plus-circle text-3xl"></i>
+    <span class="text-sm font-semibold">Add a custom role</span>
+    <span class="text-xs">e.g. Warden, Receptionist, Accountant</span>
+  </a>
+</div>

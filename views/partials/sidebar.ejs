@@ -27,38 +27,51 @@
           Dashboard
         </a>
       </li>
-      <li>
-        <a href="/students"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath.startsWith('/students') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-people-fill text-lg"></i>
-          Students
-        </a>
-      </li>
-      <li>
-        <a href="/rooms"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath.startsWith('/rooms') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-door-closed-fill text-lg"></i>
-          Rooms
-        </a>
-      </li>
-      <li>
-        <a href="/fees"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath.startsWith('/fees') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-cash-coin text-lg"></i>
-          Fees
-        </a>
-      </li>
-      <li>
-        <a href="/kitchen"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath.startsWith('/kitchen') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-cup-hot-fill text-lg"></i>
-          Kitchen
-        </a>
-      </li>
+      <%# Students: needs the list permission. Users with only the profile
+          permission (e.g. someone who can read individual records but
+          shouldn't see the roll call) won't see this link. %>
+      <% if (can('students.viewList')) { %>
+        <li>
+          <a href="/students"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/students') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-people-fill text-lg"></i>
+            Students
+          </a>
+        </li>
+      <% } %>
+      <% if (can('rooms.view')) { %>
+        <li>
+          <a href="/rooms"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/rooms') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-door-closed-fill text-lg"></i>
+            Rooms
+          </a>
+        </li>
+      <% } %>
+      <% if (can('fees.view')) { %>
+        <li>
+          <a href="/fees"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/fees') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-cash-coin text-lg"></i>
+            Fees
+          </a>
+        </li>
+      <% } %>
+      <% if (can('kitchen.view')) { %>
+        <li>
+          <a href="/kitchen"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/kitchen') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-cup-hot-fill text-lg"></i>
+            Kitchen
+          </a>
+        </li>
+      <% } %>
+      <%# Users and roles are admin territory by design (managing other
+          accounts and the access-control system itself). %>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <li>
           <a href="/users"
@@ -66,6 +79,14 @@
                     <%= currentPath.startsWith('/users') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
             <i class="bi bi-person-badge-fill text-lg"></i>
             Users
+          </a>
+        </li>
+        <li>
+          <a href="/settings/roles"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/settings/roles') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-shield-lock-fill text-lg"></i>
+            User Roles
           </a>
         </li>
       <% } %>
@@ -81,14 +102,16 @@
           My Profile
         </a>
       </li>
-      <li>
-        <a href="/settings"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath.startsWith('/settings') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-gear-fill text-lg"></i>
-          Settings
-        </a>
-      </li>
+      <% if (can('settings.view')) { %>
+        <li>
+          <a href="/settings"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/settings') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-gear-fill text-lg"></i>
+            Settings
+          </a>
+        </li>
+      <% } %>
       <li>
         <a href="/auth/logout"
            class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-red-50 hover:text-red-700">

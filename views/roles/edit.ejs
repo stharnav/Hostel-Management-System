@@ -1,0 +1,143 @@
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <div class="flex items-center gap-2 text-xs font-medium text-ink-500">
+      <a href="/settings/roles" class="hover:text-brand-600">User Roles</a>
+      <i class="bi bi-chevron-right"></i>
+      <span><%= isNew ? 'New' : 'Edit' %></span>
+    </div>
+    <h2 class="mt-1 text-2xl font-bold text-ink-900">
+      <%= isNew ? 'New role' : 'Edit ' + role.name %>
+    </h2>
+    <p class="mt-1 text-sm text-ink-500">
+      Pick a name and toggle the actions this role is allowed to perform.
+    </p>
+  </div>
+</div>
+
+<form method="POST" action="<%= isNew ? '/settings/roles' : '/settings/roles/' + role.id + '?_method=PUT' %>" class="space-y-6">
+  <!-- Identity -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-tag-fill text-brand-600"></i> Identity
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name *</label>
+        <input name="name" required value="<%= role.name || '' %>"
+               placeholder="e.g. Warden, Receptionist, Accountant"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Key</label>
+        <input value="<%= role.key || 'auto-generated from name' %>" disabled
+               class="w-full rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 font-mono text-sm text-ink-500" />
+        <p class="mt-1 text-xs text-ink-500">Used internally. Built-in roles are locked.</p>
+      </div>
+      <div class="md:col-span-2">
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Description</label>
+        <textarea name="description" rows="2"
+                  placeholder="A short note for admins about what this role is for."
+                  class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"><%= role.description || '' %></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permissions matrix -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="flex items-center gap-2 text-base font-semibold text-ink-900">
+        <i class="bi bi-toggles2 text-brand-600"></i> Permissions
+      </h3>
+      <div class="flex items-center gap-2">
+        <button type="button" data-bulk="all"
+                class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-50">
+          Select all
+        </button>
+        <button type="button" data-bulk="none"
+                class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-50">
+          Clear all
+        </button>
+        <button type="button" data-bulk="view"
+                class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-50">
+          View-only
+        </button>
+      </div>
+    </div>
+    <p class="mb-5 text-sm text-ink-500">
+      Check each action this role is allowed to perform. Unchecked = denied.
+    </p>
+
+    <div class="space-y-4">
+      <% permissionRows.forEach(function(g) { %>
+        <div class="rounded-xl border border-ink-200 bg-ink-50/40 p-4">
+          <div class="mb-3 flex items-center gap-2">
+            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-600 ring-1 ring-ink-200">
+              <i class="<%= g.icon %>"></i>
+            </span>
+            <div>
+              <h4 class="text-sm font-semibold text-ink-900"><%= g.label %></h4>
+              <p class="text-xs text-ink-500"><%= g.description %></p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <% g.actions.forEach(function(a) { %>
+              <label class="group flex cursor-pointer items-start gap-3 rounded-lg border border-ink-200 bg-white p-3 transition hover:border-brand-300 hover:bg-brand-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+                <input type="checkbox"
+                       name="permissions[<%= g.group %>][<%= a.key %>]"
+                       value="1"
+                       <%= a.on ? 'checked' : '' %>
+                       <%= (role.key === 'admin') ? 'disabled' : '' %>
+                       class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+                <span class="flex-1">
+                  <span class="block text-sm font-semibold text-ink-900"><%= a.label %></span>
+                  <span class="block text-xs text-ink-500"><%= a.description %></span>
+                </span>
+              </label>
+            <% }) %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <% if (role.key === 'admin') { %>
+      <p class="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+        <i class="bi bi-lock-fill"></i>
+        Built-in Administrator always has every permission. The checkboxes above are disabled.
+      </p>
+    <% } %>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <a href="/settings/roles" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i>
+      <%= isNew ? 'Create role' : 'Save changes' %>
+    </button>
+  </div>
+</form>
+
+<script>
+  // Bulk toggles. Select-all / Clear-all operate on every permission checkbox
+  // that's actually editable. View-only keeps just the *.view ones on.
+  (function () {
+    const checkboxes = () =>
+      document.querySelectorAll('input[type=checkbox][name^="permissions"]:not(:disabled)');
+
+    function setAll(on) { checkboxes().forEach((c) => { c.checked = on; }); }
+    function viewOnly() {
+      checkboxes().forEach((c) => {
+        const m = c.name.match(/permissions\[([^\]]+)\]\[([^\]]+)\]/);
+        c.checked = m && m[2] === 'view';
+      });
+    }
+
+    document.querySelectorAll('[data-bulk]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.bulk;
+        if (mode === 'all')  return setAll(true);
+        if (mode === 'none') return setAll(false);
+        if (mode === 'view') return viewOnly();
+      });
+    });
+  })();
+</script>

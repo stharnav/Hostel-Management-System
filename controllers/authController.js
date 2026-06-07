@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/firebase');
 const { isActive } = require('./userController');
+const { resolveUserPermissions } = require('../utils/permissions');
 
 const usersCol = () => db.collection('users');
 
@@ -42,11 +43,17 @@ exports.postLogin = async (req, res) => {
       req.flash('error', 'Invalid email or password');
       return res.redirect('/auth/login');
     }
+    // Hydrate the permission Set once at login. The server-wide middleware
+    // refreshes it on every request, so role edits take effect without
+    // forcing a re-login.
+    const permissions = await resolveUserPermissions(db, user);
     req.session.user = {
       id: doc.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      roleId: user.roleId || null,
+      permissions,
     };
     req.flash('success', `Welcome back, ${user.name}`);
     res.redirect('/dashboard');

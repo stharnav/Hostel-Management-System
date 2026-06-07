@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/settingsController');
 const upload = require('../middleware/upload');
-const { ensureAuth, ensureRole } = require('../middleware/auth');
+const { ensureAuth, ensurePermission } = require('../middleware/auth');
 
 router.use(ensureAuth);
 
-router.get('/', ctrl.index);
+router.get('/', ensurePermission('settings.view'), ctrl.index);
 
-// Branding changes are admin-only.
-router.post('/branding', ensureRole('admin'), upload.single('icon'), ctrl.updateBranding);
-router.post('/branding/reset-icon', ensureRole('admin'), ctrl.resetIcon);
+// Branding changes require the editBranding permission.
+router.post('/branding', ensurePermission('settings.editBranding'), upload.single('icon'), ctrl.updateBranding);
+router.post('/branding/reset-icon', ensurePermission('settings.editBranding'), ctrl.resetIcon);
 
 module.exports = router;

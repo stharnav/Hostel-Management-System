@@ -29,10 +29,12 @@
     </h2>
   </div>
   <div class="flex items-center gap-2">
-    <a href="/students/<%= student.id %>/edit"
-       class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">
-      <i class="bi bi-pencil"></i> Edit
-    </a>
+    <% if (can('students.edit')) { %>
+      <a href="/students/<%= student.id %>/edit"
+         class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">
+        <i class="bi bi-pencil"></i> Edit
+      </a>
+    <% } %>
   </div>
 </div>
 
@@ -92,7 +94,10 @@
         <% } %>
       </div>
 
-      <!-- Status change actions -->
+      <!-- Status change actions — only shown to roles that can changeStatus.
+           View-only roles (e.g. someone with viewProfile but not changeStatus)
+           see the student record but no lifecycle buttons. -->
+      <% if (can('students.changeStatus')) { %>
       <div class="mt-5 border-t border-ink-100 pt-4 text-left">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">Lifecycle</p>
         <%
@@ -140,6 +145,7 @@
           </p>
         <% } %>
       </div>
+      <% } %>
     </div>
 
     <!-- Payment history (below profile on desktop only) -->
