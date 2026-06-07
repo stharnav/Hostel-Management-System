@@ -4,6 +4,7 @@
 
 const { db, admin } = require('../config/firebase');
 const { computeFeeStatus, CYCLE_DAYS, GRACE_DAYS } = require('../utils/fees');
+const { record: log } = require('../utils/logger');
 
 const studentsCol = () => db.collection('students');
 const roomsCol = () => db.collection('rooms');
@@ -108,6 +109,12 @@ exports.markPaid = async (req, res) => {
       updatedAt: paidAtIso,
     });
 
+    await log(req, 'fee.payment', {
+      entity: 'student',
+      entityId: req.params.id,
+      summary: `Recorded payment of ${payment.amount} for ${doc.data().name || req.params.id}`,
+      details: { amount: payment.amount, method: payment.method, note: payment.note },
+    });
     req.flash('success', `Payment of ${payment.amount} recorded`);
     res.redirect('/fees');
   } catch (err) {

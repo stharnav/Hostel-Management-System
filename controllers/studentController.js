@@ -2,6 +2,7 @@ const { db } = require('../config/firebase');
 const { compressImage } = require('../utils/imageCompressor');
 const { uploadImage, deleteImage } = require('../utils/storage');
 const { computeFeeStatus } = require('../utils/fees');
+const { record: log } = require('../utils/logger');
 
 const studentsCol = () => db.collection('students');
 const roomsCol = () => db.collection('rooms');
@@ -172,6 +173,13 @@ exports.create = async (req, res) => {
       updatedAt: new Date().toISOString(),
     });
 
+    // Activity log: who created the record and which name they entered.
+    await log(req, 'student.create', {
+      entity: 'student',
+      summary: `Added student ${data.name}`,
+      details: { email: data.email, phone: data.phone },
+    });
+
     req.flash('success', 'Student added');
     res.redirect('/students');
   } catch (err) {
@@ -236,6 +244,11 @@ exports.update = async (req, res) => {
     }
 
     await ref.update(update);
+    await log(req, 'student.update', {
+      entity: 'student',
+      entityId: req.params.id,
+      summary: `Updated student ${update.name || existing.name || req.params.id}`,
+    });
     req.flash('success', 'Student updated');
     res.redirect(`/students/${req.params.id}`);
   } catch (err) {
@@ -271,6 +284,11 @@ exports.remove = async (req, res) => {
     if (student.idProof?.path) await deleteImage(student.idProof.path);
 
     await ref.delete();
+    await log(req, 'student.delete', {
+      entity: 'student',
+      entityId: req.params.id,
+      summary: `Deleted student ${student.name || req.params.id}`,
+    });
     req.flash('success', 'Student deleted');
     res.redirect('/students');
   } catch (err) {
@@ -325,6 +343,12 @@ exports.setStatus = async (req, res) => {
       update.enrolledAt = new Date().toISOString();
     }
     await ref.update(update);
+    await log(req, 'student.status_change', {
+      entity: 'student',
+      entityId: req.params.id,
+      summary: `${student.name || req.params.id}: ${student.status || 'active'} → ${next}`,
+      details: { from: student.status || 'active', to: next },
+    });
     req.flash('success', `Status updated to ${STATUS_LABELS[next]}`);
     res.redirect(`/students/${req.params.id}`);
   } catch (err) {

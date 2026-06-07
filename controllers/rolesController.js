@@ -13,6 +13,7 @@ const {
 
 const rolesCol = () => db.collection('roles');
 const usersCol = () => db.collection('users');
+const { record: log } = require('../utils/logger');
 
 // Build the form payload: permission rows with `on` flag set according to the
 // role's stored values, ready to render as checkboxes.
@@ -163,6 +164,10 @@ exports.create = async (req, res) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
+    await log(req, 'role.create', {
+      entity: 'role',
+      summary: `Created role "${data.name}"`,
+    });
     req.flash('success', `Role "${data.name}" created`);
     res.redirect('/settings/roles');
   } catch (err) {
@@ -196,6 +201,11 @@ exports.update = async (req, res) => {
     await ref.update({
       ...data,
       updatedAt: new Date().toISOString(),
+    });
+    await log(req, 'role.update', {
+      entity: 'role',
+      entityId: req.params.id,
+      summary: `Updated role "${data.name}"`,
     });
     req.flash('success', `Role "${data.name}" updated`);
     res.redirect('/settings/roles');
@@ -235,6 +245,12 @@ exports.remove = async (req, res) => {
     await batch.commit();
 
     const moved = assigned.size;
+    await log(req, 'role.delete', {
+      entity: 'role',
+      entityId: req.params.id,
+      summary: `Deleted role "${role.name}"`,
+      details: { usersMoved: moved },
+    });
     req.flash('success',
       moved > 0
         ? `Role deleted. ${moved} user${moved === 1 ? '' : 's'} moved to Staff.`

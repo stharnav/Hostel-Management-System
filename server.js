@@ -22,6 +22,7 @@ const settingsRoutes = require('./routes/settings');
 const rolesRoutes = require('./routes/roles');
 const kitchenRoutes = require('./routes/kitchen');
 const profileRoutes = require('./routes/profile');
+const logsRoutes = require('./routes/logs');
 const { ensureAuth } = require('./middleware/auth');
 
 const app = express();
@@ -136,6 +137,7 @@ app.use('/settings', settingsRoutes);
 app.use('/settings/roles', rolesRoutes);
 app.use('/kitchen', kitchenRoutes);
 app.use('/profile', profileRoutes);
+app.use('/logs', logsRoutes);
 
 // 404
 app.use((req, res) => {

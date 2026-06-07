@@ -80,6 +80,15 @@ const PERMISSION_CATALOG = [
       { key: 'manageRoles',  label: 'Manage roles & permissions', description: 'Create, edit, and delete roles.' },
     ],
   },
+  {
+    group: 'logs',
+    label: 'Activity Log',
+    icon: 'bi-journal-text',
+    description: 'Audit trail of who did what across the system.',
+    actions: [
+      { key: 'view', label: 'View activity log', description: 'See the feed of sign-ins, edits, deletions, and payments.' },
+    ],
+  },
 ];
 
 // Quick lookup: 'students.create' -> { group, action, label, description }

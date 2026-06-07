@@ -8,6 +8,7 @@ const {
 const { compressImage } = require('../utils/imageCompressor');
 const { uploadImage, deleteImage } = require('../utils/storage');
 const appSettings = require('../utils/appSettings');
+const { record: log } = require('../utils/logger');
 
 // Collections we measure for Firestore "data used".
 const TRACKED_COLLECTIONS = ['students', 'rooms', 'users', 'settings'];
@@ -70,6 +71,11 @@ exports.updateBranding = async (req, res) => {
     }
 
     await appSettings.update(patch);
+    await log(req, 'settings.update_branding', {
+      entity: 'settings',
+      summary: `Updated branding${patch.appName ? ` (app name: ${patch.appName})` : ''}`,
+      details: Object.keys(patch),
+    });
     req.flash('success', 'Settings updated');
     res.redirect('/settings');
   } catch (err) {

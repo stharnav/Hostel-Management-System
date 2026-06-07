@@ -1,4 +1,5 @@
 const { db, admin } = require('../config/firebase');
+const { record: log } = require('../utils/logger');
 
 const roomsCol = () => db.collection('rooms');
 const studentsCol = () => db.collection('students');
@@ -66,6 +67,10 @@ exports.create = async (req, res) => {
       occupants: [],
       createdAt: new Date().toISOString(),
     });
+    await log(req, 'room.create', {
+      entity: 'room',
+      summary: `Added room ${roomNumber} (capacity ${capacity})`,
+    });
     req.flash('success', 'Room added');
     res.redirect('/rooms');
   } catch (err) {
@@ -98,6 +103,11 @@ exports.update = async (req, res) => {
       rent: Number(rent),
       status,
     });
+    await log(req, 'room.update', {
+      entity: 'room',
+      entityId: req.params.id,
+      summary: `Updated room ${roomNumber}`,
+    });
     req.flash('success', 'Room updated');
     res.redirect('/rooms');
   } catch (err) {
@@ -121,6 +131,11 @@ exports.remove = async (req, res) => {
       await studentsCol().doc(sid).update({ roomId: null });
     }
     await ref.delete();
+    await log(req, 'room.delete', {
+      entity: 'room',
+      entityId: req.params.id,
+      summary: `Deleted room ${room.roomNumber || req.params.id}`,
+    });
     req.flash('success', 'Room deleted');
     res.redirect('/rooms');
   } catch (err) {
@@ -173,6 +188,12 @@ exports.assignStudent = async (req, res) => {
       await roomRef.update({ status: 'occupied' });
     }
 
+    await log(req, 'room.assign', {
+      entity: 'room',
+      entityId: req.params.id,
+      summary: `Assigned ${student.name} to room ${room.roomNumber}`,
+      details: { roomNumber: room.roomNumber, studentId },
+    });
     req.flash('success', 'Student assigned to room');
     res.redirect(`/rooms/${req.params.id}`);
   } catch (err) {
@@ -198,6 +219,19 @@ exports.unassignStudent = async (req, res) => {
     });
     await studentsCol().doc(studentId).update({ roomId: null });
 
+    // Pull the student name for the log summary. Best effort — if the doc
+    // is gone we just fall back to the id.
+    let studentName = studentId;
+    try {
+      const sd = await studentsCol().doc(studentId).get();
+      if (sd.exists) studentName = sd.data().name || studentId;
+    } catch { /* ignore */ }
+    await log(req, 'room.unassign', {
+      entity: 'room',
+      entityId: req.params.id,
+      summary: `Removed ${studentName} from room ${roomDoc.data().roomNumber || req.params.id}`,
+      details: { roomNumber: roomDoc.data().roomNumber, studentId },
+    });
     req.flash('success', 'Student removed from room');
     res.redirect(`/rooms/${req.params.id}`);
   } catch (err) {

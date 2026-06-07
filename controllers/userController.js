@@ -2,6 +2,7 @@
 
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/firebase');
+const { record: log } = require('../utils/logger');
 
 const usersCol = () => db.collection('users');
 const rolesCol = () => db.collection('roles');
@@ -140,6 +141,11 @@ exports.create = async (req, res) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
+    await log(req, 'user.create', {
+      entity: 'user',
+      summary: `Created user ${data.name} (${data.email})`,
+      details: { role: roleKey || data.role || 'staff' },
+    });
     req.flash('success', 'User created');
     res.redirect('/users');
   } catch (err) {
@@ -210,6 +216,12 @@ exports.update = async (req, res) => {
     }
 
     await ref.update(update);
+    await log(req, 'user.update', {
+      entity: 'user',
+      entityId: req.params.id,
+      summary: `Updated user ${data.name} (${data.email})`,
+      details: { passwordReset: !!password },
+    });
     req.flash('success', 'User updated');
     res.redirect('/users');
   } catch (err) {
@@ -238,6 +250,11 @@ exports.toggleActive = async (req, res) => {
     }
     const current = isActive(doc.data());
     await ref.update({ active: !current, updatedAt: new Date().toISOString() });
+    await log(req, current ? 'user.deactivate' : 'user.activate', {
+      entity: 'user',
+      entityId: req.params.id,
+      summary: `${current ? 'Deactivated' : 'Reactivated'} user ${doc.data().name || doc.data().email || req.params.id}`,
+    });
     req.flash('success', current ? 'User deactivated' : 'User reactivated');
     res.redirect('/users');
   } catch (err) {
@@ -253,7 +270,19 @@ exports.remove = async (req, res) => {
       req.flash('error', 'You cannot delete your own account');
       return res.redirect('/users');
     }
-    await usersCol().doc(req.params.id).delete();
+    // Pull the name/email first so we still have something meaningful in
+    // the log after the doc is gone.
+    const ref = usersCol().doc(req.params.id);
+    const snap = await ref.get();
+    const deletedLabel = snap.exists
+      ? (snap.data().name || snap.data().email || req.params.id)
+      : req.params.id;
+    await ref.delete();
+    await log(req, 'user.delete', {
+      entity: 'user',
+      entityId: req.params.id,
+      summary: `Deleted user ${deletedLabel}`,
+    });
     req.flash('success', 'User deleted');
     res.redirect('/users');
   } catch (err) {

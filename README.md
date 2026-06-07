@@ -16,6 +16,9 @@ hit the database/bucket.
 - 🚪 **Room management** — add rooms with type, capacity, floor, rent,
   status. Assign / unassign students with capacity checks.
 - 📊 **Dashboard** — student count, room count, occupancy stats.
+- 🧾 **Activity log** — every sign-in, create, edit, delete, payment, role
+  change, and branding update is recorded with the actor, timestamp, and
+  IP. Filter by group, action, actor, or date from `/logs`.
 - ☁️ **Firebase Storage** for images, **Firestore** for data. Falls back
   to inline base64-in-Firestore if no Storage bucket is configured.
 
@@ -38,11 +41,15 @@ hit the database/bucket.
 ├── server.js                # app entry
 ├── config/firebase.js       # firebase-admin init
 ├── middleware/              # auth + upload (multer)
-├── controllers/             # auth / students / rooms / users
+├── controllers/             # auth / students / rooms / users / logs …
 ├── routes/                  # express routers
 ├── utils/
 │   ├── imageCompressor.js   # sharp resize+JPEG
-│   └── storage.js           # upload to Storage / fallback to base64
+│   ├── storage.js           # upload to Storage / fallback to base64
+│   ├── permissions.js       # permission catalog + role resolution
+│   ├── logger.js            # activity log writer
+│   ├── appSettings.js       # branding cache
+│   └── fees.js              # fee status math
 ├── views/                   # EJS templates
 └── public/css/style.css
 ```
@@ -108,14 +115,24 @@ A typical 3–5 MB phone photo lands at ~80–150 KB.
 
 ## Data model
 
-**users** — `{ name, email, passwordHash, role: 'admin'|'staff', createdAt }`
+**users** — `{ name, email, passwordHash, role: 'admin'|'staff', roleId,
+active, createdAt }`
 
-**students** — `{ name, email, phone, course, address, guardianName,
-guardianPhone, photo: { url, path }, idProof: { url, path }, roomId,
-createdAt, updatedAt }`
+**students** — `{ name, nameNepali, dob, email, phone, address,
+citizenNo, institute, classTime, levelOfStudy, bloodGroup, dietary,
+diseases, father: {…}, mother: {…}, localGuardian: {…}, photo: { url,
+path }, idProof: { url, path }, roomId, status: 'active'|'on_leave'|
+'returned'|'left', enrolledAt, lastPaidAt, payments: […], createdAt,
+updatedAt }`
 
 **rooms** — `{ roomNumber, type, capacity, floor, rent, status,
 occupants: [studentId, ...], createdAt }`
+
+**roles** — `{ key, name, description, permissions, isSystem, createdAt,
+updatedAt }`
+
+**logs** — `{ action, actor: { id, name, email, role }, entity,
+entityId, summary, details, ip, userAgent, createdAt }`
 
 ## Notes
 
@@ -123,3 +140,8 @@ occupants: [studentId, ...], createdAt }`
 - Deleting a student frees its room slot and deletes its images from
   Storage. Deleting a room clears `roomId` on its occupants.
 - Only admins can delete students, rooms, or other users.
+- The **Activity Log** at `/logs` records sign-ins (and failed attempts),
+  CRUD on students, rooms, users, fees, role changes, and branding
+  updates. Each entry captures the actor, timestamp, target entity, and
+  IP. The log is admin-only by default — grant `logs.view` to expose it
+  to a non-admin role.

@@ -70,8 +70,25 @@
           </a>
         </li>
       <% } %>
+      <%# Activity log — visible to anyone with the permission (admin by default). %>
+      <% if (can('logs.view')) { %>
+        <li>
+          <a href="/logs"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/logs') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-journal-text text-lg"></i>
+            Activity Log
+          </a>
+        </li>
+      <% } %>
+    </ul>
+
+    <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
+    <ul class="space-y-1">
       <%# Users and roles are admin territory by design (managing other
-          accounts and the access-control system itself). %>
+          accounts and the access-control system itself). Grouped under
+          Account so the "Menu" section stays focused on day-to-day hostel
+          operations. %>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <li>
           <a href="/users"
@@ -90,10 +107,6 @@
           </a>
         </li>
       <% } %>
-    </ul>
-
-    <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
-    <ul class="space-y-1">
       <li>
         <a href="/profile"
            class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
@@ -102,11 +115,15 @@
           My Profile
         </a>
       </li>
+      <%# Settings link is the *root* settings page only — its sub-pages
+          (e.g. /settings/roles) belong to their own sidebar items. Using
+          startsWith('/settings') would double-highlight Settings whenever
+          the user is anywhere under the settings tree. %>
       <% if (can('settings.view')) { %>
         <li>
           <a href="/settings"
              class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/settings') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+                    <%= currentPath === '/settings' ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
             <i class="bi bi-gear-fill text-lg"></i>
             Settings
           </a>
