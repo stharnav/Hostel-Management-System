@@ -21,6 +21,7 @@ router.post('/', ensurePermission('students.create'), studentUpload, ctrl.create
 
 // Two different "view" permissions: the searchable list vs. the full profile.
 // A user can have only the list (e.g. front-desk) or both (e.g. warden).
+router.get('/:id/history', ensurePermission('students.viewHistory'), ctrl.history);
 router.get('/:id', ensurePermission('students.viewProfile'), ctrl.view);
 router.get('/:id/edit', ensurePermission('students.edit'), ctrl.editForm);
 router.put('/:id', ensurePermission('students.edit'), studentUpload, ctrl.update);

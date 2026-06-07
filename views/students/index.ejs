@@ -234,11 +234,17 @@
     </div>
 
     <div class="mt-5 flex flex-col gap-2">
-      <%# View / Edit — simple links. Gated by their respective permissions. %>
+      <%# View / Edit / History — simple links. Gated by their respective permissions. %>
       <% if (can('students.viewProfile')) { %>
         <a id="srm-view" href="#"
            class="inline-flex items-center gap-3 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700">
           <i class="bi bi-eye text-lg text-brand-600"></i> View profile
+        </a>
+      <% } %>
+      <% if (can('students.viewHistory')) { %>
+        <a id="srm-history" href="#"
+           class="inline-flex items-center gap-3 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700">
+          <i class="bi bi-clock-history text-lg text-indigo-600"></i> View history
         </a>
       <% } %>
       <% if (can('students.edit')) { %>
@@ -305,6 +311,7 @@
     const subtitle = document.getElementById('student-row-modal-subtitle');
     const viewLink = document.getElementById('srm-view');
     const editLink = document.getElementById('srm-edit');
+    const historyLink = document.getElementById('srm-history');
     const emptyMsg = document.getElementById('srm-empty');
     const lifecycleForms = modal.querySelectorAll('form[data-show-for]');
     const backdrop = document.getElementById('student-row-modal-backdrop');
@@ -329,6 +336,7 @@
 
       if (viewLink) viewLink.href = '/students/' + encodeURIComponent(id);
       if (editLink) editLink.href = '/students/' + encodeURIComponent(id) + '/edit';
+      if (historyLink) historyLink.href = '/students/' + encodeURIComponent(id) + '/history';
 
       // Show only the lifecycle buttons that make sense for the row's
       // current status. Buttons that don't apply are hidden — they remain
@@ -350,7 +358,7 @@
       });
 
       // If the user has no actions at all, show a friendly note.
-      const hasAny = (viewLink || editLink) || visibleCount > 0;
+      const hasAny = (viewLink || editLink || historyLink) || visibleCount > 0;
       if (emptyMsg) emptyMsg.classList.toggle('hidden', hasAny);
 
       lastFocused = document.activeElement;

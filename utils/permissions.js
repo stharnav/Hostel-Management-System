@@ -18,6 +18,7 @@ const PERMISSION_CATALOG = [
     actions: [
       { key: 'viewList',    label: 'View student list',     description: 'See the searchable list of all students and their room/fee status.' },
       { key: 'viewProfile', label: 'View student profile',  description: 'Open an individual student to see their full details, guardians, and payment history.' },
+      { key: 'viewHistory', label: 'View student history',  description: 'Open the combined payment and presence timeline for a student.' },
       { key: 'create',      label: 'Create student',        description: 'Add a new resident to the hostel.' },
       { key: 'edit',        label: 'Edit student',          description: 'Update name, contact, education, and other fields.' },
       { key: 'delete',      label: 'Delete student',        description: 'Permanently remove a student and free their room.' },
@@ -126,7 +127,7 @@ function allPermissions() {
 // Conservative baseline for the built-in Staff role.
 function staffPermissions() {
   return {
-    students: { viewList: true, viewProfile: true, create: false, edit: true, delete: false, changeStatus: true },
+    students: { viewList: true, viewProfile: true, viewHistory: true, create: false, edit: true, delete: false, changeStatus: true },
     rooms:    { view: true, create: false, edit: false, delete: false, assign: true },
     fees:     { view: true, recordPayment: true },
     kitchen:  { view: true },

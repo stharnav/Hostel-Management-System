@@ -80,6 +80,9 @@ exports.index = async (req, res) => {
     hasMore,
     page,
     pageSize,
+    // The view's pageUrl() helper needs the original query string so
+    // paginated links preserve active filters — pass req through.
+    req,
     filters: { action, actor, group, from: req.query.from || '', to: req.query.to || '' },
     options,
     groupLabels: GROUP_LABELS,

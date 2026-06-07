@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db, admin } = require('../config/firebase');
 const { compressImage } = require('../utils/imageCompressor');
 const { uploadImage, deleteImage } = require('../utils/storage');
 const { computeFeeStatus } = require('../utils/fees');
@@ -371,6 +371,21 @@ exports.setStatus = async (req, res) => {
     if (requested === 'returned' && student.status !== 'active') {
       update.enrolledAt = new Date().toISOString();
     }
+
+    // Presence history: append a lifecycle entry so the history view can
+    // reconstruct enrollment + leaves. We always write the *requested*
+    // transition (e.g. "on_leave", "returned") even when the stored status
+    // is mapped to something else — that way the timeline matches the
+    // operator's intent and the duration math works on the human-meaningful
+    // events. `arrayUnion` handles dedupe for our re-renders; we pass a
+    // fresh ISO timestamp on every call so two consecutive leaves don't
+    // collapse into one.
+    const nowIso = new Date().toISOString();
+    update.presence = admin.firestore.FieldValue.arrayUnion({
+      type: requested,
+      at: nowIso,
+      by: (req.session.user && req.session.user.name) || null,
+    });
     await ref.update(update);
     await log(req, 'student.status_change', {
       entity: 'student',
@@ -391,4 +406,133 @@ exports.setStatus = async (req, res) => {
     req.flash('error', 'Failed to update status');
     res.redirect(statusChangeRedirect(req, req.params.id));
   }
+};
+
+/**
+ * Build the presence timeline shown on the student history page. The raw
+ * `presence` array is just a chronological list of lifecycle events
+ * (on_leave, returned, left, active). The history view wants richer rows:
+ * each leave has a start, end, and duration in days; the enrollment is
+ * its own row; and an unclosed leave (the student is currently on leave)
+ * stays open-ended with `daysSoFar` so the page can show it.
+ *
+ * Algorithm: walk events in order, opening/closing segments by event type.
+ * "Mark as active" from on_leave is recorded as `returned` in `presence`
+ * (see setStatus), so a single check on type==='returned' closes any open
+ * leave — we don't need to special-case active-vs-returned.
+ */
+function buildPresenceTimeline(student) {
+  const events = Array.isArray(student.presence) ? [...student.presence] : [];
+  // Sort defensively — arrayUnion preserves order, but older docs may have
+  // been hand-written or migrated with a different order.
+  events.sort((a, b) => new Date(a.at) - new Date(b.at));
+
+  const rows = [];
+  if (student.enrolledAt) {
+    rows.push({
+      kind: 'enrolled',
+      at: student.enrolledAt,
+    });
+  }
+
+  let openLeave = null;
+  let openLeft = null;
+
+  const dayDiff = (startIso, endIso) => {
+    const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+    if (Number.isNaN(ms) || ms < 0) return 0;
+    return Math.floor(ms / 86400000);
+  };
+
+  for (const ev of events) {
+    const t = ev.type;
+    if (t === 'on_leave') {
+      openLeave = { startedAt: ev.at, startedBy: ev.by || null };
+    } else if (t === 'returned' && openLeave) {
+      const days = dayDiff(openLeave.startedAt, ev.at);
+      rows.push({
+        kind: 'leave',
+        startedAt: openLeave.startedAt,
+        endedAt: ev.at,
+        days,
+        startedBy: openLeave.startedBy,
+        endedBy: ev.by || null,
+      });
+      openLeave = null;
+    } else if (t === 'left') {
+      openLeft = { at: ev.at, by: ev.by || null };
+    } else if (t === 'returned' && openLeft) {
+      const days = dayDiff(openLeft.at, ev.at);
+      rows.push({
+        kind: 'left',
+        startedAt: openLeft.at,
+        endedAt: ev.at,
+        days,
+        startedBy: openLeft.by,
+        endedBy: ev.by || null,
+      });
+      openLeft = null;
+    } else if (t === 'active' && !openLeave && !openLeft) {
+      // Re-activation from a permanent `left` is a new enrollment. Skip
+      // events that don't have a matching open segment — defensive against
+      // odd histories.
+    }
+  }
+
+  if (openLeave) {
+    const days = dayDiff(openLeave.startedAt, new Date().toISOString());
+    rows.push({
+      kind: 'leave',
+      startedAt: openLeave.startedAt,
+      endedAt: null,
+      days,
+      startedBy: openLeave.startedBy,
+      endedBy: null,
+      ongoing: true,
+    });
+  }
+  if (openLeft) {
+    const days = dayDiff(openLeft.at, new Date().toISOString());
+    rows.push({
+      kind: 'left',
+      startedAt: openLeft.at,
+      endedAt: null,
+      days,
+      startedBy: openLeft.by,
+      endedBy: null,
+      ongoing: true,
+    });
+  }
+
+  return rows;
+}
+
+exports.history = async (req, res) => {
+  const doc = await studentsCol().doc(req.params.id).get();
+  if (!doc.exists) {
+    req.flash('error', 'Student not found');
+    return res.redirect('/students');
+  }
+  const student = { id: doc.id, ...doc.data() };
+  let room = null;
+  if (student.roomId) {
+    const r = await roomsCol().doc(student.roomId).get();
+    if (r.exists) room = { id: r.id, ...r.data() };
+  }
+  const presence = buildPresenceTimeline(student);
+  const payments = (student.payments || [])
+    .slice()
+    .sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt));
+  const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+  res.render('students/history', {
+    title: `${student.name} — History`,
+    student,
+    room,
+    presence,
+    payments,
+    totalPaid,
+    statuses: STATUSES,
+    statusLabels: STATUS_LABELS,
+  });
 };

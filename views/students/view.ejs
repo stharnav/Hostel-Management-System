@@ -29,6 +29,12 @@
     </h2>
   </div>
   <div class="flex items-center gap-2">
+    <% if (can('students.viewHistory')) { %>
+      <a href="/students/<%= student.id %>/history"
+         class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700">
+        <i class="bi bi-clock-history"></i> History
+      </a>
+    <% } %>
     <% if (can('students.edit')) { %>
       <a href="/students/<%= student.id %>/edit"
          class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">
@@ -189,54 +195,57 @@
 
   <!-- Right column: details -->
   <div class="lg:col-span-2 space-y-6">
-    <!-- Personal -->
-    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
-      <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
-        <i class="bi bi-person-vcard"></i> Personal
-      </h4>
-      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <dt class="text-xs font-medium text-ink-500">Email</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.email %></dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-ink-500">Phone</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.phone %></dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-ink-500">Date of birth</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.dob || '—' %></dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-ink-500">Citizenship No.</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900 font-mono"><%= student.citizenNo || '—' %></dd>
-        </div>
-        <div class="sm:col-span-2">
-          <dt class="text-xs font-medium text-ink-500">Permanent address</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.address || '—' %></dd>
-        </div>
-      </dl>
-    </div>
+    <!-- Personal + Education side by side -->
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <!-- Personal -->
+      <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-person-vcard"></i> Personal
+        </h4>
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Email</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.email %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Phone</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.phone %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Date of birth</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.dob || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-ink-500">Citizenship No.</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900 font-mono"><%= student.citizenNo || '—' %></dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium text-ink-500">Permanent address</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.address || '—' %></dd>
+          </div>
+        </dl>
+      </div>
 
-    <!-- Education -->
-    <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
-      <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
-        <i class="bi bi-mortarboard"></i> Education
-      </h4>
-      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div class="sm:col-span-2">
-          <dt class="text-xs font-medium text-ink-500">Institute</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.institute || '—' %></dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-ink-500">Class time</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.classTime || '—' %></dd>
-        </div>
-        <div class="sm:col-span-3">
-          <dt class="text-xs font-medium text-ink-500">Level of study</dt>
-          <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.levelOfStudy || '—' %></dd>
-        </div>
-      </dl>
+      <!-- Education -->
+      <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+        <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <i class="bi bi-mortarboard"></i> Education
+        </h4>
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium text-ink-500">Institute</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.institute || '—' %></dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium text-ink-500">Class time</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.classTime || '—' %></dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium text-ink-500">Level of study</dt>
+            <dd class="mt-1 text-sm font-medium text-ink-900"><%= student.levelOfStudy || '—' %></dd>
+          </div>
+        </dl>
+      </div>
     </div>
 
     <!-- Health -->
