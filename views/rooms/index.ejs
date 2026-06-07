@@ -10,6 +10,27 @@
   </a>
 </div>
 
+<form method="GET" action="/rooms" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+  <div class="relative flex-1">
+    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
+      <i class="bi bi-search"></i>
+    </span>
+    <input type="search" name="q" value="<%= q || '' %>" placeholder="Search by room number, type, floor, rent…"
+           class="w-full rounded-lg border border-ink-200 bg-white py-2.5 pl-10 pr-10 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+    <% if (q) { %>
+      <a href="/rooms"
+         class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+         title="Clear search">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    <% } %>
+  </div>
+  <button type="submit"
+          class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">
+    Search
+  </button>
+</form>
+
 <% if (!rooms.length) { %>
   <div class="rounded-2xl border border-ink-200 bg-white px-6 py-16 text-center shadow-card">
     <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-ink-100 text-ink-400">
@@ -22,33 +43,39 @@
     </a>
   </div>
 <% } else { %>
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+  <div class="grid grid-cols-4 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     <% rooms.forEach(function(r) { %>
       <% const occ = (r.occupants || []).length; %>
-      <% const full = occ >= r.capacity; %>
+      <% const empty = occ === 0; %>
+      <% const full = !empty && occ >= r.capacity; %>
       <% const pct = r.capacity ? Math.round((occ / r.capacity) * 100) : 0; %>
+      <%
+        const borderClass = full
+          ? 'border-emerald-300 hover:border-emerald-400'
+          : (empty ? 'border-red-300 hover:border-red-400' : 'border-amber-300 hover:border-amber-400');
+      %>
       <a href="/rooms/<%= r.id %>"
-         class="group rounded-2xl border border-ink-200 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-soft">
-        <div class="flex items-start justify-between">
+         class="group rounded-2xl border-2 <%= borderClass %> bg-white p-3 text-center shadow-card transition hover:-translate-y-0.5 hover:shadow-soft sm:p-5 sm:text-left">
+        <div class="hidden items-start justify-between sm:flex">
           <div class="flex h-12 w-12 items-center justify-center rounded-xl
-                      <%= full ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600' %>">
+                      <%= full ? 'bg-emerald-50 text-emerald-600' : (empty ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600') %>">
             <i class="bi bi-door-closed-fill text-xl"></i>
           </div>
           <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold
-                       <%= full ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700' %>">
-            <%= full ? 'Full' : 'Available' %>
+                       <%= full ? 'bg-emerald-50 text-emerald-700' : (empty ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') %>">
+            <%= full ? 'Full' : (empty ? 'Available' : 'Partial') %>
           </span>
         </div>
-        <h3 class="mt-4 text-lg font-bold text-ink-900 group-hover:text-brand-700">Room <%= r.roomNumber %></h3>
-        <p class="text-sm text-ink-500"><%= r.type %> · Floor <%= r.floor || '—' %></p>
+        <h3 class="mt-0 text-lg font-bold text-ink-900 group-hover:text-brand-700 sm:mt-4"><span class="hidden sm:inline">Room </span><%= r.roomNumber %></h3>
+        <p class="hidden text-sm text-ink-500 sm:block"><%= r.type %> · Floor <%= r.floor || '—' %></p>
 
-        <div class="mt-4">
+        <div class="mt-4 hidden sm:block">
           <div class="mb-1.5 flex items-center justify-between text-xs">
             <span class="font-medium text-ink-600"><%= occ %> / <%= r.capacity %> beds</span>
             <span class="font-semibold text-ink-900"><%= brand.currencySymbol %><%= r.rent || 0 %></span>
           </div>
           <div class="h-1.5 w-full overflow-hidden rounded-full bg-ink-100">
-            <div class="h-full rounded-full <%= full ? 'bg-red-500' : 'bg-emerald-500' %>"
+            <div class="h-full rounded-full <%= full ? 'bg-emerald-500' : (empty ? 'bg-red-500' : 'bg-amber-500') %>"
                  data-width="<%= pct %>"></div>
           </div>
         </div>

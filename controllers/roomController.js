@@ -6,8 +6,24 @@ const studentsCol = () => db.collection('students');
 
 exports.list = async (req, res) => {
   const snap = await roomsCol().orderBy('roomNumber', 'asc').get();
-  const rooms = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.render('rooms/index', { title: 'Rooms', rooms });
+  const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const q = (req.query.q || '').trim().toLowerCase();
+
+  let rooms = all;
+  if (q) {
+    rooms = rooms.filter((r) => {
+      const hay = [
+        r.roomNumber,
+        r.type,
+        r.floor,
+        r.rent,
+      ].filter((v) => v !== undefined && v !== null).map(String).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  res.render('rooms/index', { title: 'Rooms', rooms, q });
 };
 
 exports.view = async (req, res) => {
