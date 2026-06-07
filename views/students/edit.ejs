@@ -9,9 +9,18 @@
   const diets       = [{v:'veg',l:'Vegetarian'},{v:'nonveg',l:'Non-vegetarian'},{v:'eggOnly',l:'Veg + Egg only'}];
 %>
 
-<div class="mb-6">
-  <h2 class="text-2xl font-bold text-ink-900">Edit Student</h2>
-  <p class="mt-1 text-sm text-ink-500">Update <%= student.name %>'s information</p>
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">Edit Student</h2>
+    <p class="mt-1 text-sm text-ink-500">Update <%= student.name %>'s information</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <a href="/students/<%= student.id %>" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <button type="submit"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i> Update
+    </button>
+  </div>
 </div>
 
 <form method="POST" action="/students/<%= student.id %>?_method=PUT" enctype="multipart/form-data" class="space-y-6">
@@ -32,6 +41,15 @@
       <div>
         <label class="mb-1.5 block text-sm font-medium text-ink-700">Date of birth</label>
         <input type="date" name="dob" value="<%= student.dob || '' %>" class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Enrolled date</label>
+        <%# Pre-fill the picker with whatever the controller has. Editing it
+            rewinds/advances the 30-day fee cycle. %>
+        <input type="date" name="enrolledAt"
+               value="<%= student.enrolledAt ? new Date(student.enrolledAt).toISOString().slice(0,10) : '' %>"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+        <p class="mt-1 text-xs text-ink-500">Set the actual date they joined the hostel. Drives the 30-day fee cycle.</p>
       </div>
       <div>
         <label class="mb-1.5 block text-sm font-medium text-ink-700">Citizenship No.</label>

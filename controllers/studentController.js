@@ -148,6 +148,15 @@ exports.create = async (req, res) => {
     const photo = await handleImageField(photoFile, 'students/photos');
     const idProof = await handleImageField(idFile, 'students/ids');
 
+    // Enrollment date — backdate for students who joined earlier but whose
+    // data is being entered now. Empty picker → today. We accept a `YYYY-MM-DD`
+    // string from the date input and convert to ISO at midnight UTC so the
+    // fee timer starts cleanly on the chosen day.
+    const enrolledDateRaw = (req.body.enrolledAt || '').trim();
+    const enrolledAt = enrolledDateRaw
+      ? new Date(`${enrolledDateRaw}T00:00:00.000Z`).toISOString()
+      : new Date().toISOString();
+
     await studentsCol().add({
       ...data,
       photo: photo ? { url: photo.url, path: photo.path } : null,
@@ -156,7 +165,7 @@ exports.create = async (req, res) => {
       // Lifecycle status — see STATUSES above.
       status: 'active',
       // Enrollment timestamp drives the 30-day fee timer.
-      enrolledAt: new Date().toISOString(),
+      enrolledAt,
       lastPaidAt: null,
       payments: [],
       createdAt: new Date().toISOString(),
@@ -198,6 +207,19 @@ exports.update = async (req, res) => {
       ...readStudentBody(req.body),
       updatedAt: new Date().toISOString(),
     };
+
+    // Enrolled date is editable. Only overwrite if the field was submitted —
+    // an empty string means the user cleared the picker, in which case we
+    // keep the existing enrolledAt to avoid resetting fee history.
+    if (req.body.enrolledAt !== undefined) {
+      const raw = String(req.body.enrolledAt).trim();
+      if (raw) {
+        const parsed = new Date(`${raw}T00:00:00.000Z`);
+        if (!Number.isNaN(parsed.getTime())) {
+          update.enrolledAt = parsed.toISOString();
+        }
+      }
+    }
 
     const photoFile = req.files?.photo?.[0];
     const idFile = req.files?.idProof?.[0];

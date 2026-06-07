@@ -17,6 +17,8 @@ const studentRoutes = require('./routes/students');
 const roomRoutes = require('./routes/rooms');
 const feesRoutes = require('./routes/fees');
 const settingsRoutes = require('./routes/settings');
+const kitchenRoutes = require('./routes/kitchen');
+const profileRoutes = require('./routes/profile');
 const { ensureAuth } = require('./middleware/auth');
 
 const app = express();
@@ -92,6 +94,8 @@ app.use('/students', studentRoutes);
 app.use('/rooms', roomRoutes);
 app.use('/fees', feesRoutes);
 app.use('/settings', settingsRoutes);
+app.use('/kitchen', kitchenRoutes);
+app.use('/profile', profileRoutes);
 
 // 404
 app.use((req, res) => {

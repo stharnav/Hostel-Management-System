@@ -51,6 +51,14 @@
           Fees
         </a>
       </li>
+      <li>
+        <a href="/kitchen"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath.startsWith('/kitchen') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-cup-hot-fill text-lg"></i>
+          Kitchen
+        </a>
+      </li>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <li>
           <a href="/users"
@@ -65,6 +73,14 @@
 
     <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
     <ul class="space-y-1">
+      <li>
+        <a href="/profile"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                  <%= currentPath.startsWith('/profile') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+          <i class="bi bi-person-circle text-lg"></i>
+          My Profile
+        </a>
+      </li>
       <li>
         <a href="/settings"
            class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition

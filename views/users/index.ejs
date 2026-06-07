@@ -18,13 +18,22 @@
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">User</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Email</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Role</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Diet</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Status</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Created</th>
           <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-500">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-ink-100 bg-white">
-        <% users.forEach(function(u) { %>
-          <tr class="hover:bg-ink-50">
+        <% users.forEach(function(u) {
+             const diet = u.dietary || 'veg';
+             const dietStyle = diet === 'nonveg' ? 'bg-red-50 text-red-700'
+                             : diet === 'eggOnly' ? 'bg-amber-50 text-amber-700'
+                             : 'bg-emerald-50 text-emerald-700';
+             // Legacy records (no `active` field) are treated as active.
+             const active = u.active === undefined ? true : !!u.active;
+        %>
+          <tr class="hover:bg-ink-50 <%= active ? '' : 'opacity-60' %>">
             <td class="whitespace-nowrap px-6 py-4">
               <div class="flex items-center gap-3">
                 <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 font-semibold">
@@ -40,9 +49,36 @@
                 <%= u.role %>
               </span>
             </td>
+            <td class="whitespace-nowrap px-6 py-4">
+              <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase <%= dietStyle %>">
+                <%= dietLabels[diet] || dietLabels.veg %>
+              </span>
+            </td>
+            <td class="whitespace-nowrap px-6 py-4">
+              <% if (active) { %>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold uppercase text-emerald-700">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Active
+                </span>
+              <% } else { %>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold uppercase text-ink-600">
+                  <span class="h-1.5 w-1.5 rounded-full bg-ink-400"></span> Inactive
+                </span>
+              <% } %>
+            </td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-500"><%= new Date(u.createdAt).toLocaleDateString() %></td>
             <td class="whitespace-nowrap px-6 py-4 text-right">
+              <a href="/users/<%= u.id %>/edit"
+                 class="inline-flex rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700" title="Edit">
+                <i class="bi bi-pencil-square"></i>
+              </a>
               <% if (u.id !== currentUser.id) { %>
+                <form method="POST" action="/users/<%= u.id %>/toggle-active" class="inline"
+                      onsubmit="return confirm('<%= active ? 'Deactivate' : 'Reactivate' %> this user?')">
+                  <button class="rounded-lg p-2 <%= active ? 'text-ink-500 hover:bg-amber-50 hover:text-amber-700' : 'text-ink-500 hover:bg-emerald-50 hover:text-emerald-700' %>"
+                          title="<%= active ? 'Deactivate' : 'Reactivate' %>">
+                    <i class="bi bi-<%= active ? 'pause-fill' : 'play-fill' %>"></i>
+                  </button>
+                </form>
                 <form method="POST" action="/users/<%= u.id %>?_method=DELETE" class="inline"
                       onsubmit="return confirm('Delete this user?')">
                   <button class="rounded-lg p-2 text-ink-500 hover:bg-red-50 hover:text-red-700" title="Delete">
@@ -50,7 +86,7 @@
                   </button>
                 </form>
               <% } else { %>
-                <span class="text-xs text-ink-400">(you)</span>
+                <span class="ml-1 text-xs text-ink-400">(you)</span>
               <% } %>
             </td>
           </tr>

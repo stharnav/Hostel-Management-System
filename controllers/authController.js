@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/firebase');
+const { isActive } = require('./userController');
 
 const usersCol = () => db.collection('users');
 
@@ -31,6 +32,13 @@ exports.postLogin = async (req, res) => {
     const ok = await bcrypt.compare(password, user.passwordHash || '');
     if (!ok) {
       console.warn(`[auth] password mismatch for ${email}`);
+      req.flash('error', 'Invalid email or password');
+      return res.redirect('/auth/login');
+    }
+    // Inactive accounts (deactivated by an admin) can't sign in. Use the same
+    // generic message as a wrong password so we don't leak account existence.
+    if (!isActive(user)) {
+      console.warn(`[auth] inactive account ${email} tried to log in`);
       req.flash('error', 'Invalid email or password');
       return res.redirect('/auth/login');
     }

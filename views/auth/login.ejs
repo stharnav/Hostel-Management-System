@@ -1,6 +1,6 @@
 <div class="w-full max-w-md">
   <div class="rounded-2xl bg-white p-8 shadow-2xl">
-    <div class="mb-8 text-center">
+    <div class="mb-6 text-center">
       <% if (brand && brand.iconUrl) { %>
         <img src="<%= brand.iconUrl %>" alt="" class="mx-auto mb-4 h-14 w-14 rounded-2xl object-cover shadow-lg" />
       <% } else { %>
@@ -11,6 +11,15 @@
       <h1 class="text-2xl font-bold text-ink-900">Welcome back</h1>
       <p class="mt-1 text-sm text-ink-500">Sign in to your <%= brand && brand.appName ? brand.appName : 'Hostel Manager' %> account</p>
     </div>
+
+    <% if (typeof error !== 'undefined' && error && error.length) { %>
+      <% error.forEach(function(msg) { %>
+        <div class="mb-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-red-800" role="alert">
+          <i class="bi bi-exclamation-triangle-fill mt-0.5 text-base"></i>
+          <p class="flex-1 text-sm font-medium"><%= msg %></p>
+        </div>
+      <% }) %>
+    <% } %>
 
     <form method="POST" action="/auth/login" class="space-y-5">
       <div>

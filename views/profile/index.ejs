@@ -1,0 +1,117 @@
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">My Profile</h2>
+    <p class="mt-1 text-sm text-ink-500">Update your password and dietary preference</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <a href="<%= currentUser.role === 'admin' ? '/users' : '/dashboard' %>"
+       class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Back</a>
+    <button type="submit" form="profile-form"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i> Save changes
+    </button>
+  </div>
+</div>
+
+<form id="profile-form" method="POST" action="/profile?_method=PUT" class="space-y-6">
+  <!-- Account info (read-only) -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-person-vcard-fill text-brand-600"></i> Account
+    </h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Name</label>
+        <input value="<%= user.name %>" disabled
+               class="w-full rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-sm text-ink-700" />
+        <p class="mt-1 text-xs text-ink-500">Only an admin can change your name.</p>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
+        <input value="<%= user.email %>" disabled
+               class="w-full rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-sm text-ink-700" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Role</label>
+        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase
+                     <%= user.role === 'admin' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700' %>">
+          <%= user.role %>
+        </span>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Status</label>
+        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold uppercase
+                     <%= user.active === false ? 'bg-ink-100 text-ink-600' : 'bg-emerald-50 text-emerald-700' %>">
+          <span class="h-1.5 w-1.5 rounded-full <%= user.active === false ? 'bg-ink-400' : 'bg-emerald-500' %>"></span>
+          <%= user.active === false ? 'Inactive' : 'Active' %>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dietary preference -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-egg-fried text-brand-600"></i> Dietary preference
+    </h3>
+    <p class="mb-4 text-xs text-ink-500">Used by the kitchen dashboard to plan your meals.</p>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-ink-200 px-4 py-3 text-sm hover:bg-ink-50 has-[:checked]:border-emerald-300 has-[:checked]:bg-emerald-50">
+        <input type="radio" name="dietary" value="veg" <%= (!user.dietary || user.dietary === 'veg') ? 'checked' : '' %> class="text-emerald-600 focus:ring-emerald-500" />
+        <span class="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
+          <i class="bi bi-egg-fried"></i>
+        </span>
+        <span class="font-medium text-ink-900"><%= dietLabels.veg %></span>
+      </label>
+      <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-ink-200 px-4 py-3 text-sm hover:bg-ink-50 has-[:checked]:border-red-300 has-[:checked]:bg-red-50">
+        <input type="radio" name="dietary" value="nonveg" <%= user.dietary === 'nonveg' ? 'checked' : '' %> class="text-red-600 focus:ring-red-500" />
+        <span class="flex h-9 w-9 items-center justify-center rounded-md bg-red-100 text-red-700">
+          <i class="bi bi-fire"></i>
+        </span>
+        <span class="font-medium text-ink-900"><%= dietLabels.nonveg %></span>
+      </label>
+      <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-ink-200 px-4 py-3 text-sm hover:bg-ink-50 has-[:checked]:border-amber-300 has-[:checked]:bg-amber-50">
+        <input type="radio" name="dietary" value="eggOnly" <%= user.dietary === 'eggOnly' ? 'checked' : '' %> class="text-amber-600 focus:ring-amber-500" />
+        <span class="flex h-9 w-9 items-center justify-center rounded-md bg-amber-100 text-amber-700">
+          <i class="bi bi-egg-fill"></i>
+        </span>
+        <span class="font-medium text-ink-900"><%= dietLabels.eggOnly %></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Password change -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="mb-1 flex items-center gap-2 text-base font-semibold text-ink-900">
+      <i class="bi bi-shield-lock-fill text-brand-600"></i> Change password
+    </h3>
+    <p class="mb-4 text-xs text-ink-500">Leave all three fields blank to keep your current password.</p>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Current password</label>
+        <input type="password" name="currentPassword" autocomplete="current-password"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">New password</label>
+        <input type="password" name="newPassword" autocomplete="new-password" minlength="6"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+        <p class="mt-1 text-xs text-ink-500">Minimum 6 characters</p>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-ink-700">Confirm new password</label>
+        <input type="password" name="confirmPassword" autocomplete="new-password" minlength="6"
+               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <a href="<%= currentUser.role === 'admin' ? '/users' : '/dashboard' %>"
+       class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <button type="submit"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-check2"></i> Save changes
+    </button>
+  </div>
+</form>

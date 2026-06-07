@@ -1,0 +1,181 @@
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-ink-900">Kitchen dashboard</h2>
+  <p class="mt-1 text-sm text-ink-500">
+    Today's meal plan — who's available, what they eat, and how many meals to prepare.
+  </p>
+</div>
+
+<!-- Top stat cards: total headcount + merged diet counts (students + staff) -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+        <i class="bi bi-people-fill text-xl"></i>
+      </div>
+      <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Eating today</span>
+    </div>
+    <p class="mt-4 text-sm font-medium text-ink-500">Total headcount</p>
+    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.total %></p>
+    <p class="mt-1 text-xs text-ink-500">
+      <%= availableCount %> students · <%= staff.all.length %> staff
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-6 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+        <i class="bi bi-egg-fried text-xl"></i>
+      </div>
+    </div>
+    <p class="mt-4 text-sm font-medium text-ink-500">Veg</p>
+    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.veg %></p>
+    <p class="mt-1 text-xs text-ink-500">
+      <%= dietCounts.veg + (dietCounts.unspecified || 0) %> students · <%= staff.dietCounts ? staff.dietCounts.veg : 0 %> staff
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-red-50 via-white to-orange-50 p-6 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-700">
+        <i class="bi bi-fire text-xl"></i>
+      </div>
+    </div>
+    <p class="mt-4 text-sm font-medium text-ink-500">Non-veg</p>
+    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.nonveg %></p>
+    <p class="mt-1 text-xs text-ink-500">
+      <%= dietCounts.nonveg %> students · <%= staff.dietCounts ? staff.dietCounts.nonveg : 0 %> staff
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-6 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+        <i class="bi bi-egg-fill text-xl"></i>
+      </div>
+    </div>
+    <p class="mt-4 text-sm font-medium text-ink-500">Egg only</p>
+    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.egg %></p>
+    <p class="mt-1 text-xs text-ink-500">
+      <%= dietCounts.eggOnly %> students · <%= staff.dietCounts ? staff.dietCounts.eggOnly : 0 %> staff
+    </p>
+  </div>
+</div>
+
+<%
+  // Render a single roll-call row for a person (student or staff).
+  // - Names are plain text, no profile link (kitchen view is read-only).
+  // - Staff rows use an indigo avatar + "Staff" pill so the kitchen can
+  //   tell them apart from students at a glance.
+  // - Tailwind's JIT only sees literal class strings, so we branch on
+  //   diet/staff and emit full class names — no template interpolation
+  //   in class attributes.
+  function personRow(p) {
+    const initials = (p.name || '?').charAt(0).toUpperCase();
+    const isStaff = p._kind === 'staff';
+
+    if (isStaff) {
+      return `
+        <li class="flex items-center gap-3 py-2">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">${initials}</span>
+          <span class="flex-1 truncate text-sm font-medium text-ink-900">${p.name}</span>
+          <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-700">Staff</span>
+        </li>`;
+    }
+
+    // Student — pick colour by diet so the row visually belongs to its column.
+    const diet = p.dietary || 'unspecified';
+    let avatarCls, tagCls, label;
+    if (diet === 'veg') {
+      avatarCls = 'bg-emerald-100 text-emerald-700';
+      tagCls    = 'bg-emerald-50 text-emerald-700';
+      label     = 'Veg';
+    } else if (diet === 'nonveg') {
+      avatarCls = 'bg-red-100 text-red-700';
+      tagCls    = 'bg-red-50 text-red-700';
+      label     = 'Non-veg';
+    } else if (diet === 'eggOnly') {
+      avatarCls = 'bg-amber-100 text-amber-700';
+      tagCls    = 'bg-amber-50 text-amber-700';
+      label     = 'Egg only';
+    } else {
+      avatarCls = 'bg-ink-100 text-ink-700';
+      tagCls    = 'bg-ink-100 text-ink-600';
+      label     = '—';
+    }
+    return `
+      <li class="flex items-center gap-3 py-2">
+        <span class="flex h-8 w-8 items-center justify-center rounded-full ${avatarCls} text-xs font-semibold">${initials}</span>
+        <span class="flex-1 truncate text-sm font-medium text-ink-900">${p.name}</span>
+        <span class="rounded-full ${tagCls} px-2 py-0.5 text-[10px] font-semibold uppercase">${label}</span>
+      </li>`;
+  }
+%>
+
+<!-- Dietary breakdown: students + staff together, by diet -->
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <!-- Veg list -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="mb-4 flex items-center gap-2">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+        <i class="bi bi-egg-fried"></i>
+      </span>
+      <h3 class="text-base font-semibold text-ink-900">Vegetarian</h3>
+      <span class="ml-auto rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+        <%= mergedByDiet.veg.length %>
+      </span>
+    </div>
+    <% if (mergedByDiet.veg.length === 0) { %>
+      <p class="text-sm text-ink-500">No vegetarian meals today.</p>
+    <% } else { %>
+      <ul class="divide-y divide-ink-100">
+        <% mergedByDiet.veg.forEach(function(p) { %>
+          <%- personRow(p) %>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+
+  <!-- Non-veg list -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="mb-4 flex items-center gap-2">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
+        <i class="bi bi-fire"></i>
+      </span>
+      <h3 class="text-base font-semibold text-ink-900">Non-vegetarian</h3>
+      <span class="ml-auto rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+        <%= mergedByDiet.nonveg.length %>
+      </span>
+    </div>
+    <% if (mergedByDiet.nonveg.length === 0) { %>
+      <p class="text-sm text-ink-500">No non-veg meals today.</p>
+    <% } else { %>
+      <ul class="divide-y divide-ink-100">
+        <% mergedByDiet.nonveg.forEach(function(p) { %>
+          <%- personRow(p) %>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+
+  <!-- Egg only list -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="mb-4 flex items-center gap-2">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+        <i class="bi bi-egg-fill"></i>
+      </span>
+      <h3 class="text-base font-semibold text-ink-900">Egg only</h3>
+      <span class="ml-auto rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+        <%= mergedByDiet.eggOnly.length %>
+      </span>
+    </div>
+    <% if (mergedByDiet.eggOnly.length === 0) { %>
+      <p class="text-sm text-ink-500">No egg-only meals today.</p>
+    <% } else { %>
+      <ul class="divide-y divide-ink-100">
+        <% mergedByDiet.eggOnly.forEach(function(p) { %>
+          <%- personRow(p) %>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</div>

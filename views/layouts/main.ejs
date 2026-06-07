@@ -67,7 +67,11 @@
     </div>
   <% } else { %>
     <main class="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900">
-      <%- include('../partials/flash') %>
+      <%# Login pages render their own inline error — skip the global flash
+          partial here so the banner doesn't appear outside the card. %>
+      <% if (!currentPath.startsWith('/auth/login')) { %>
+        <%- include('../partials/flash') %>
+      <% } %>
       <%- body %>
     </main>
   <% } %>
