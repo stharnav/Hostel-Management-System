@@ -105,7 +105,7 @@
           const transitions = {
             active:   [{ k: 'on_leave', l: 'Mark on leave',    tone: 'amber',   icon: 'bi-pause-circle' },
                        { k: 'left',     l: 'Mark as left',     tone: 'red',     icon: 'bi-box-arrow-right' }],
-            on_leave: [{ k: 'returned', l: 'Mark as returned', tone: 'brand',   icon: 'bi-arrow-counterclockwise' },
+            on_leave: [{ k: 'returned', l: 'Mark as active',   tone: 'brand',   icon: 'bi-arrow-counterclockwise' },
                        { k: 'left',     l: 'Mark as left',     tone: 'red',     icon: 'bi-box-arrow-right' }],
             returned: [{ k: 'on_leave', l: 'Mark on leave',    tone: 'amber',   icon: 'bi-pause-circle' },
                        { k: 'left',     l: 'Mark as left',     tone: 'red',     icon: 'bi-box-arrow-right' }],
@@ -119,7 +119,7 @@
           };
           const confirmMsg = {
             on_leave: 'Mark this student as on leave?',
-            returned: 'Mark this student as returned? Fee timer will restart from today.',
+            returned: 'Mark this student as active again? Fee timer will restart from today.',
             left:     'Mark this student as left? Their room will be freed.',
             active:   'Re-activate this student?',
           };
@@ -129,6 +129,11 @@
             <form method="POST" action="/students/<%= student.id %>/status"
                   onsubmit="return confirm('<%= confirmMsg[t.k] %>')">
               <input type="hidden" name="status" value="<%= t.k %>" />
+              <%# Send the user back to this profile page after the change.
+                  The controller will only honor this if it points at the
+                  same student's profile, so a tampered form can't redirect
+                  anywhere dangerous. %>
+              <input type="hidden" name="return" value="/students/<%= student.id %>" />
               <button class="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium <%= btnTone[t.tone] %>">
                 <i class="bi <%= t.icon %>"></i> <%= t.l %>
               </button>

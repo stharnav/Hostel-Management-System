@@ -70,7 +70,17 @@
           </a>
         </li>
       <% } %>
-      <%# Activity log — visible to anyone with the permission (admin by default). %>
+    </ul>
+
+    <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
+    <ul class="space-y-1">
+      <%# Users and roles are admin territory by design (managing other
+          accounts and the access-control system itself). Grouped under
+          Account so the "Menu" section stays focused on day-to-day hostel
+          operations. %>
+      <%# Activity log lives under Account — it's an audit/history view
+          rather than a day-to-day hostel operation. Visible to anyone with
+          the permission (admin by default). %>
       <% if (can('logs.view')) { %>
         <li>
           <a href="/logs"
@@ -81,14 +91,16 @@
           </a>
         </li>
       <% } %>
-    </ul>
-
-    <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
-    <ul class="space-y-1">
-      <%# Users and roles are admin territory by design (managing other
-          accounts and the access-control system itself). Grouped under
-          Account so the "Menu" section stays focused on day-to-day hostel
-          operations. %>
+      <% if (can('storage.view')) { %>
+        <li>
+          <a href="/settings/storage"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/settings/storage') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-hdd-fill text-lg"></i>
+            Storage
+          </a>
+        </li>
+      <% } %>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <li>
           <a href="/users"

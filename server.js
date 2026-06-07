@@ -11,7 +11,7 @@ const bcrypt = require('bcryptjs');
 const { db } = require('./config/firebase');
 const appSettings = require('./utils/appSettings');
 const { resolveUserPermissions } = require('./utils/permissions');
-const { seedDefaultRoles } = require('./controllers/rolesController');
+const { seedDefaultRoles, enforceStaffInvariants } = require('./controllers/rolesController');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -77,11 +77,14 @@ app.use(async (req, res, next) => {
         // Keep display fields in sync in case the user was renamed.
         req.session.user.name = userData.name;
         req.session.user.email = userData.email;
-        // Mark the session dirty so express-session persists the new
-        // permissions Set on this response. Without an explicit touch()
-        // the save is lazy and can be skipped if the response is a
-        // redirect (Express historically doesn't always flush).
-        req.session.touch();
+        // Persist the mutated session. `touch()` only bumps the cookie
+        // expiry, which is not enough if the store is anything but the
+        // default in-memory one (e.g. a Firestore-backed store would
+        // serialise the old Set on the next request). `save()` is a no-op
+        // for the in-memory store, so it's safe to always call.
+        req.session.save((err) => {
+          if (err) console.warn('[session] save after rehydrate failed:', err.message);
+        });
       }
     } catch (err) {
       console.warn('[session] failed to refresh permissions:', err.message);
@@ -173,6 +176,12 @@ async function bootstrapAdmin() {
 
     // Make sure the default roles exist before linking the admin to one.
     await seedDefaultRoles();
+    // Heal any Staff role doc that's missing the permissions the day-to-day
+    // UI depends on (e.g. `students.changeStatus`). Runs after seeding so
+    // a freshly created Staff doc inherits the right defaults on its first
+    // boot, and also catches docs that drifted via a previous app version
+    // or a hand edit.
+    await enforceStaffInvariants();
     const adminRoleSnap = await db.collection('roles').where('key', '==', 'admin').limit(1).get();
     const adminRoleId = adminRoleSnap.empty ? null : adminRoleSnap.docs[0].id;
 

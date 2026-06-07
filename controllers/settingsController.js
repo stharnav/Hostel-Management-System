@@ -3,7 +3,6 @@ const { db } = require('../config/firebase');
 const {
   getStorageUsage,
   getFirestoreUsage,
-  formatBytes,
 } = require('../utils/storage');
 const { compressImage } = require('../utils/imageCompressor');
 const { uploadImage, deleteImage } = require('../utils/storage');
@@ -13,25 +12,33 @@ const { record: log } = require('../utils/logger');
 // Collections we measure for Firestore "data used".
 const TRACKED_COLLECTIONS = ['students', 'rooms', 'users', 'settings'];
 
-exports.index = async (req, res) => {
-  const [storage, firestore, brand] = await Promise.all([
+// Shared loader for the storage page (and any other view that needs the
+// same dashboard). Keeps the Firebase queries in one place.
+async function loadStorageDashboard() {
+  const [storage, firestore] = await Promise.all([
     getStorageUsage(),
     getFirestoreUsage(db, TRACKED_COLLECTIONS),
-    appSettings.get(),
   ]);
-
-  res.render('settings/index', {
-    title: 'Settings',
+  return {
     storage,
     firestore,
-    brand,
     system: {
       nodeVersion: process.version,
       platform: `${process.platform} (${os.arch()})`,
       uptime: Math.round(process.uptime()),
       bucket: process.env.FIREBASE_STORAGE_BUCKET || '(not configured)',
     },
-  });
+  };
+}
+
+exports.index = async (req, res) => {
+  const [brand] = await Promise.all([appSettings.get()]);
+  res.render('settings/index', { title: 'Settings', brand });
+};
+
+exports.storage = async (req, res) => {
+  const data = await loadStorageDashboard();
+  res.render('settings/storage', { title: 'Storage', ...data });
 };
 
 exports.updateBranding = async (req, res) => {

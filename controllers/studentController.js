@@ -302,14 +302,43 @@ exports.remove = async (req, res) => {
  * Change a student's lifecycle status (active / on_leave / returned / left).
  * When the student is marked as having left the hostel, their room slot is
  * freed automatically so the bed becomes available again.
+ *
+ * "Returned from leave" is a one-way action: we map it to `active` so the
+ * student is immediately back in the active pool, but we keep the original
+ * `returned` value in the audit log so the trail still shows the operator
+ * pressed "Mark as returned" rather than a plain "Re-activate". The fee
+ * timer is restarted in both cases so a returning student gets a fresh
+ * billing cycle.
  */
+// Pick a safe redirect target after a status change. We default to the
+// students list (guarded by students.viewList, which is more permissive
+// than students.viewProfile), so a user with `changeStatus` but without
+// `viewProfile` (e.g. a Staff role that's been granted the action but not
+// the profile read) can still see the result of their action.
+//
+// Callers can override via a `return` field on the form — but only when it
+// points at this student's own profile page. Anything else is treated as
+// untrusted and falls back to the list.
+function statusChangeRedirect(req, studentId) {
+  const ret = (req.body.return || req.query.return || '').toString();
+  if (/^\/students\/[A-Za-z0-9_-]+$/.test(ret) && ret === `/students/${studentId}`) {
+    return ret;
+  }
+  return '/students';
+}
+
 exports.setStatus = async (req, res) => {
   try {
-    const next = String(req.body.status || '').toLowerCase();
-    if (!STATUSES.includes(next)) {
+    const requested = String(req.body.status || '').toLowerCase();
+    if (!STATUSES.includes(requested)) {
       req.flash('error', 'Invalid status');
-      return res.redirect(`/students/${req.params.id}`);
+      return res.redirect(statusChangeRedirect(req, req.params.id));
     }
+    // "Returned" is the only transition that lands on a different stored
+    // status. We accept it from the form so the lifecycle button reads
+    // naturally ("Mark as returned") but persist `active` so the student
+    // shows up in the active list and counts toward occupancy.
+    const stored = requested === 'returned' ? 'active' : requested;
     const ref = studentsCol().doc(req.params.id);
     const doc = await ref.get();
     if (!doc.exists) {
@@ -318,11 +347,11 @@ exports.setStatus = async (req, res) => {
     }
     const student = doc.data();
     const update = {
-      status: next,
+      status: stored,
       statusChangedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    if (next === 'left') {
+    if (stored === 'left') {
       update.leftAt = new Date().toISOString();
       // Free the room when they leave for good.
       if (student.roomId) {
@@ -337,23 +366,29 @@ exports.setStatus = async (req, res) => {
         update.roomId = null;
       }
     }
-    if (next === 'returned' && student.status !== 'returned') {
-      // Coming back from leave — bump the enrollment date so the fee timer
-      // starts fresh from today.
+    // Coming back from leave (returned → active) or simply being re-activated
+    // from left: bump the enrollment date so the fee timer starts fresh.
+    if (requested === 'returned' && student.status !== 'active') {
       update.enrolledAt = new Date().toISOString();
     }
     await ref.update(update);
     await log(req, 'student.status_change', {
       entity: 'student',
       entityId: req.params.id,
-      summary: `${student.name || req.params.id}: ${student.status || 'active'} → ${next}`,
-      details: { from: student.status || 'active', to: next },
+      // Log the *requested* transition so audits show the operator pressed
+      // "Mark as returned", not the underlying "→ active" mapping.
+      summary: `${student.name || req.params.id}: ${student.status || 'active'} → ${requested}${stored !== requested ? ` (stored as ${stored})` : ''}`,
+      details: {
+        from: student.status || 'active',
+        requested,
+        storedAs: stored,
+      },
     });
-    req.flash('success', `Status updated to ${STATUS_LABELS[next]}`);
-    res.redirect(`/students/${req.params.id}`);
+    req.flash('success', `Status updated to ${STATUS_LABELS[stored]}`);
+    res.redirect(statusChangeRedirect(req, req.params.id));
   } catch (err) {
     console.error('[students] setStatus failed:', err);
     req.flash('error', 'Failed to update status');
-    res.redirect(`/students/${req.params.id}`);
+    res.redirect(statusChangeRedirect(req, req.params.id));
   }
 };

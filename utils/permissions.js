@@ -89,6 +89,15 @@ const PERMISSION_CATALOG = [
       { key: 'view', label: 'View activity log', description: 'See the feed of sign-ins, edits, deletions, and payments.' },
     ],
   },
+  {
+    group: 'storage',
+    label: 'Storage',
+    icon: 'bi-hdd-fill',
+    description: 'Firebase Storage usage, Firestore data breakdown, and system info.',
+    actions: [
+      { key: 'view', label: 'View storage', description: 'See Firebase Storage usage, Firestore data breakdown, and system info.' },
+    ],
+  },
 ];
 
 // Quick lookup: 'students.create' -> { group, action, label, description }
@@ -123,6 +132,8 @@ function staffPermissions() {
     kitchen:  { view: true },
     users:    { view: false, create: false, edit: false, delete: false, activate: false },
     settings: { view: true, editBranding: false, manageRoles: false },
+    logs:     { view: false },
+    storage:  { view: true },
   };
 }
 

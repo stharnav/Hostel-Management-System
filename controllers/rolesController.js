@@ -267,3 +267,44 @@ exports.remove = async (req, res) => {
 module.exports.seedDefaultRoles = seedDefaultRoles;
 // Exposed so views can render the permission label/description if needed.
 module.exports.PERMISSIONS_INDEX = PERMISSIONS_INDEX;
+
+/**
+ * Enforce invariants on the built-in Staff role that `mergePermissions()`
+ * deliberately leaves alone. The general merger preserves an explicit
+ * `false` for any action, which is the right behaviour for an admin-curated
+ * role — but the Staff role has a few "must-have" permissions that the
+ * day-to-day UI assumes, and silently stripping them is much worse than
+ * refusing the edit.
+ *
+ * Today the only such invariant is `students.changeStatus`: the lifecycle
+ * buttons on the student page and the list-view popup are wired up, and
+ * blocking them for staff breaks the whole student flow. We force it on
+ * here after `seedDefaultRoles` runs, so a stale Staff doc (one that
+ * pre-dates the permission, was hand-edited, or lost the key in a
+ * migration) gets healed on the next boot.
+ */
+async function enforceStaffInvariants() {
+  const snap = await rolesCol().where('key', '==', 'staff').limit(1).get();
+  if (snap.empty) return; // seedDefaultRoles will create it on the next boot
+  const docRef = snap.docs[0].ref;
+  const data = snap.docs[0].data();
+  const perms = data.permissions || {};
+  const students = { ...(perms.students || {}) };
+
+  const must = { changeStatus: true };
+  const needs = Object.entries(must).filter(
+    ([k, v]) => students[k] !== v
+  );
+  if (needs.length === 0) return;
+
+  needs.forEach(([k, v]) => { students[k] = v; });
+  await docRef.update({
+    permissions: { ...perms, students },
+    updatedAt: new Date().toISOString(),
+  });
+  console.log(
+    `[roles] enforced staff invariants: ${needs.map(([k]) => k).join(', ')} → true`
+  );
+}
+
+module.exports.enforceStaffInvariants = enforceStaffInvariants;
