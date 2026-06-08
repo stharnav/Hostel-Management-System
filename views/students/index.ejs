@@ -98,7 +98,73 @@
       <% } %>
     </div>
   <% } else { %>
-    <div class="overflow-x-auto">
+
+    <!-- Mobile: card layout -->
+    <div class="divide-y divide-ink-100 sm:hidden">
+      <% students.forEach(function(s) {
+           const st = s.status || 'active';
+           const tone = statusTone(st);
+           const isLeft = st === 'left'; %>
+        <div class="block px-4 py-3 hover:bg-ink-50 transition cursor-pointer <%= isLeft ? 'opacity-60' : '' %>"
+             data-student-row
+             data-id="<%= s.id %>"
+             data-name="<%= s.name.replace(/"/g, '&quot;') %>"
+             data-status="<%= st %>">
+          <div class="flex items-start gap-3">
+            <% if (s.photo && s.photo.url) { %>
+              <img src="<%= s.photo.url %>" class="h-10 w-10 rounded-full object-cover flex-shrink-0" alt="" />
+            <% } else { %>
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 font-semibold flex-shrink-0 text-sm">
+                <%= s.name.charAt(0).toUpperCase() %>
+              </div>
+            <% } %>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-ink-900 truncate"><%= s.name %></p>
+                <span class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold <%= tone.bg %> <%= tone.text %> flex-shrink-0">
+                  <span class="h-1 w-1 rounded-full <%= tone.dot %>"></span>
+                  <%= statusLabels[st] %>
+                </span>
+              </div>
+              <div class="mt-0.5 flex items-center gap-2 text-xs text-ink-500">
+                <% if (s.roomId) { %>
+                  <span class="inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Room assigned</span>
+                <% } %>
+                <% if (s.phone) { %>
+                  <span><%= s.phone %></span>
+                <% } %>
+              </div>
+              <% if (s.institute) { %>
+                <p class="mt-0.5 text-[11px] text-ink-400 truncate"><%= s.institute %></p>
+              <% } %>
+            </div>
+            <div class="flex items-center gap-1 flex-shrink-0" data-row-action-stop>
+              <% if (can('students.viewProfile')) { %>
+                <a href="/students/<%= s.id %>" class="rounded p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-700">
+                  <i class="bi bi-eye text-xs"></i>
+                </a>
+              <% } %>
+              <% if (can('students.edit')) { %>
+                <a href="/students/<%= s.id %>/edit" class="rounded p-1.5 text-ink-400 hover:bg-amber-50 hover:text-amber-700">
+                  <i class="bi bi-pencil text-xs"></i>
+                </a>
+              <% } %>
+              <% if (can('students.delete')) { %>
+                <form method="POST" action="/students/<%= s.id %>?_method=DELETE" class="inline"
+                      onsubmit="return confirm('Delete this student?')">
+                  <button type="submit" class="rounded p-1.5 text-ink-400 hover:bg-red-50 hover:text-red-700">
+                    <i class="bi bi-trash text-xs"></i>
+                  </button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Desktop: table layout -->
+    <div class="hidden sm:block overflow-x-auto">
       <table class="min-w-full divide-y divide-ink-200">
         <thead class="bg-ink-50">
           <tr>
@@ -171,9 +237,6 @@
                 </span>
               </td>
               <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                <!-- Inline actions: stop propagation so clicking these doesn't
-                     open the row-action modal. They keep their original
-                     behavior (navigate / submit form). -->
                 <div class="inline-flex items-center gap-1" data-row-action-stop>
                   <% if (can('students.viewProfile')) { %>
                     <a href="/students/<%= s.id %>" title="View"
@@ -203,6 +266,7 @@
         </tbody>
       </table>
     </div>
+
   <% } %>
 </div>
 
@@ -381,7 +445,7 @@
 
     // Row click → open. Skip clicks that originated inside the inline
     // action cell (those have data-row-action-stop on the wrapper).
-    document.querySelectorAll('tr[data-student-row]').forEach((row) => {
+    document.querySelectorAll('[data-student-row]').forEach((row) => {
       row.addEventListener('click', (e) => {
         if (e.target.closest('[data-row-action-stop]')) return;
         // If the click was on a link or button inside the row other than
