@@ -70,6 +70,16 @@
           </a>
         </li>
       <% } %>
+      <% if (can('expenses.view')) { %>
+        <li>
+          <a href="/expenses"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath.startsWith('/expenses') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-receipt-cutoff text-lg"></i>
+            Expenses
+          </a>
+        </li>
+      <% } %>
     </ul>
 
     <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>

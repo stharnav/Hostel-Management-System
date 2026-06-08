@@ -1,0 +1,214 @@
+<%
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  }
+  function fmtAmt(n) {
+    return (brand.currencySymbol || '₹') + Number(n || 0).toLocaleString('en-IN');
+  }
+%>
+
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-ink-900">Expenses</h2>
+    <p class="mt-1 text-sm text-ink-500">Track and manage hostel expenditures</p>
+  </div>
+  <% if (can('expenses.create')) { %>
+    <a href="/expenses/add" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+      <i class="bi bi-plus-lg"></i> Add Expense
+    </a>
+  <% } %>
+</div>
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
+  <div class="rounded-2xl border border-ink-200 bg-white p-4 sm:p-5 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+        <i class="bi bi-receipt-cutoff text-base sm:text-lg"></i>
+      </div>
+      <span class="text-[10px] sm:text-xs font-semibold uppercase text-ink-500">All time</span>
+    </div>
+    <p class="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-ink-900"><%= fmtAmt(totalAll) %></p>
+    <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-ink-500">Total expenses</p>
+  </div>
+  <div class="rounded-2xl border border-ink-200 bg-white p-4 sm:p-5 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+        <i class="bi bi-calendar-range text-base sm:text-lg"></i>
+      </div>
+      <span class="text-[10px] sm:text-xs font-semibold uppercase text-ink-500">
+        <%= period === 'today' ? 'Today' : period === 'week' ? 'This week' : period === 'year' ? 'This year' : 'This month' %>
+      </span>
+    </div>
+    <p class="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-ink-900"><%= fmtAmt(totalPeriod) %></p>
+    <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-ink-500">Selected period</p>
+  </div>
+  <div class="hidden sm:block rounded-2xl border border-ink-200 bg-white p-5 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+        <i class="bi bi-tag-fill text-lg"></i>
+      </div>
+      <span class="text-xs font-semibold uppercase text-ink-500">Categories</span>
+    </div>
+    <p class="mt-3 text-2xl font-bold text-ink-900"><%= categoryTotals.length %></p>
+    <p class="mt-1 text-xs text-ink-500">Expense categories used</p>
+  </div>
+</div>
+
+<!-- Category breakdown -->
+<% if (categoryTotals.length > 0) { %>
+  <div class="mt-6 rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="text-lg font-semibold text-ink-900">Category Breakdown</h3>
+    <div class="mt-4 space-y-3">
+      <% categoryTotals.forEach(function(c) { %>
+        <div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-medium text-ink-700"><%= c.name %></span>
+            <span class="font-semibold text-ink-900"><%= fmtAmt(c.total) %> <span class="text-ink-400">(<%= c.pct %>%)</span></span>
+          </div>
+          <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-ink-100">
+            <div class="h-full rounded-full bg-brand-500" style="width: <%= c.pct %>%"></div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% } %>
+
+<!-- Filters -->
+<div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-nowrap">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="text-xs font-semibold uppercase text-ink-500">Period:</span>
+    <% ['today','week','month','year','all'].forEach(function(p) {
+         const active = p === period; %>
+      <a href="/expenses?period=<%= p %>&category=<%= filter %>"
+         class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition
+                <%= active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-100' %>">
+        <%= p === 'all' ? 'All time' : p.charAt(0).toUpperCase() + p.slice(1) %>
+      </a>
+    <% }) %>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-xs font-semibold uppercase text-ink-500">Category:</span>
+    <select onchange="window.location.href='/expenses?period=<%= period %>&category='+this.value"
+            class="rounded-lg border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-700 focus:border-brand-500 focus:outline-none">
+      <option value="all" <%= filter === 'all' || !filter ? 'selected' : '' %>>All categories</option>
+      <% categories.forEach(function(c) { %>
+        <option value="<%= c.toLowerCase() %>" <%= filter === c.toLowerCase() ? 'selected' : '' %>><%= c %></option>
+      <% }) %>
+    </select>
+  </div>
+</div>
+
+<!-- Expense list -->
+<div class="mt-4 rounded-2xl border border-ink-200 bg-white shadow-card">
+  <% if (!expenses.length) { %>
+    <div class="px-6 py-16 text-center">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-ink-100 text-ink-400">
+        <i class="bi bi-receipt text-3xl"></i>
+      </div>
+      <h3 class="text-base font-semibold text-ink-900">No expenses yet</h3>
+      <p class="mt-1 text-sm text-ink-500">Start recording hostel expenses to track spending.</p>
+      <% if (can('expenses.create')) { %>
+        <a href="/expenses/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          <i class="bi bi-plus-lg"></i> Add first expense
+        </a>
+      <% } %>
+    </div>
+  <% } else { %>
+
+    <!-- Mobile: card layout -->
+    <div class="divide-y divide-ink-100 sm:hidden">
+      <% expenses.forEach(function(exp) { %>
+        <a href="/expenses/<%= exp.id %>" class="block px-4 py-3 hover:bg-ink-50 transition">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+                  <%= exp.category || 'Misc' %>
+                </span>
+                <span class="text-[11px] text-ink-400"><%= fmtDate(exp.date) %></span>
+              </div>
+              <% if (exp.description) { %>
+                <p class="mt-1 text-xs text-ink-600 truncate"><%= exp.description %></p>
+              <% } %>
+              <% if (exp.vendor) { %>
+                <p class="mt-0.5 text-[11px] text-ink-400"><%= exp.vendor %></p>
+              <% } %>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p class="text-sm font-bold text-ink-900"><%= fmtAmt(exp.amount) %></p>
+              <div class="mt-1 flex items-center justify-end gap-1" onclick="event.stopPropagation()">
+                <% if (can('expenses.edit')) { %>
+                  <a href="/expenses/<%= exp.id %>/edit" class="inline-flex items-center rounded border border-ink-200 bg-white p-1 text-ink-500 hover:bg-ink-50">
+                    <i class="bi bi-pencil text-[10px]"></i>
+                  </a>
+                <% } %>
+                <% if (can('expenses.delete')) { %>
+                  <form method="POST" action="/expenses/<%= exp.id %>?_method=DELETE" class="inline"
+                        onsubmit="return confirm('Delete this expense?')">
+                    <button type="submit" class="inline-flex items-center rounded border border-red-200 bg-white p-1 text-red-500 hover:bg-red-50">
+                      <i class="bi bi-trash text-[10px]"></i>
+                    </button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+
+    <!-- Desktop: table layout -->
+    <div class="hidden sm:block overflow-x-auto">
+      <table class="min-w-full divide-y divide-ink-200">
+        <thead class="bg-ink-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Category</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Description</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Vendor</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-500">Added by</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-500">Amount</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-500">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ink-100 bg-white">
+          <% expenses.forEach(function(exp) { %>
+            <tr class="cursor-pointer hover:bg-ink-50 transition" onclick="window.location='/expenses/<%= exp.id %>'">
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700"><%= fmtDate(exp.date) %></td>
+              <td class="whitespace-nowrap px-6 py-4">
+                <span class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+                  <%= exp.category || 'Miscellaneous' %>
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-ink-700 max-w-xs truncate"><%= exp.description || '—' %></td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-700"><%= exp.vendor || '—' %></td>
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-500"><%= exp.addedBy || '—' %></td>
+              <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-ink-900"><%= fmtAmt(exp.amount) %></td>
+              <td class="whitespace-nowrap px-6 py-4 text-right">
+                <div class="flex items-center justify-end gap-2" onclick="event.stopPropagation()">
+                  <% if (can('expenses.edit')) { %>
+                    <a href="/expenses/<%= exp.id %>/edit" class="inline-flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-2.5 py-1 text-xs font-semibold text-ink-700 hover:bg-ink-50">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                  <% } %>
+                  <% if (can('expenses.delete')) { %>
+                    <form method="POST" action="/expenses/<%= exp.id %>?_method=DELETE" class="inline"
+                          onsubmit="return confirm('Delete this expense?')">
+                      <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+  <% } %>
+</div>

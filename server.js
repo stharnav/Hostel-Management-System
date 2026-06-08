@@ -23,6 +23,7 @@ const rolesRoutes = require('./routes/roles');
 const kitchenRoutes = require('./routes/kitchen');
 const profileRoutes = require('./routes/profile');
 const logsRoutes = require('./routes/logs');
+const expenseRoutes = require('./routes/expenses');
 const { ensureAuth } = require('./middleware/auth');
 
 const app = express();
@@ -109,9 +110,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/dashboard', ensureAuth, async (req, res) => {
-  const [students, rooms] = await Promise.all([
+  const [students, rooms, expensesSnap] = await Promise.all([
     db.collection('students').get(),
     db.collection('rooms').get(),
+    db.collection('exports').get(),
   ]);
   const roomData = rooms.docs.map((d) => d.data());
   const capacity = roomData.reduce((sum, r) => sum + (r.capacity || 0), 0);
@@ -119,6 +121,24 @@ app.get('/dashboard', ensureAuth, async (req, res) => {
     (sum, r) => sum + (r.occupants?.length || 0),
     0
   );
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  let monthExpenses = 0;
+  let totalExpenses = 0;
+  let recentExpenses = [];
+  expensesSnap.forEach((doc) => {
+    const e = doc.data();
+    totalExpenses += e.amount || 0;
+    if (new Date(e.date) >= monthStart) {
+      monthExpenses += e.amount || 0;
+    }
+    if (recentExpenses.length < 5) {
+      recentExpenses.push({ id: doc.id, ...e });
+    }
+  });
+  recentExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
   res.render('dashboard', {
     title: 'Dashboard',
     stats: {
@@ -127,6 +147,9 @@ app.get('/dashboard', ensureAuth, async (req, res) => {
       capacity,
       occupied,
       vacancies: Math.max(capacity - occupied, 0),
+      totalExpenses,
+      monthExpenses,
+      recentExpenses,
     },
   });
 });
@@ -141,6 +164,7 @@ app.use('/settings/roles', rolesRoutes);
 app.use('/kitchen', kitchenRoutes);
 app.use('/profile', profileRoutes);
 app.use('/logs', logsRoutes);
+app.use('/expenses', expenseRoutes);
 
 // 404
 app.use((req, res) => {

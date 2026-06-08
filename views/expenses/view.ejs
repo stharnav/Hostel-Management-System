@@ -1,0 +1,116 @@
+<%
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  }
+  function fmtDateTime(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  function fmtAmt(n) {
+    return (brand.currencySymbol || '₹') + Number(n || 0).toLocaleString('en-IN');
+  }
+%>
+
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <a href="/expenses" class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-brand-600">
+      <i class="bi bi-arrow-left"></i> Back to Expenses
+    </a>
+    <h2 class="text-2xl font-bold text-ink-900">Expense Details</h2>
+  </div>
+  <div class="flex items-center gap-2">
+    <% if (can('expenses.edit')) { %>
+      <a href="/expenses/<%= expense.id %>/edit"
+         class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">
+        <i class="bi bi-pencil"></i> Edit
+      </a>
+    <% } %>
+    <% if (can('expenses.delete')) { %>
+      <form method="POST" action="/expenses/<%= expense.id %>?_method=DELETE" class="inline"
+            onsubmit="return confirm('Delete this expense permanently?')">
+        <button type="submit" class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<!-- Main detail card -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <!-- Amount & Category -->
+  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <div class="flex items-center justify-between">
+      <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+        <i class="bi bi-receipt-cutoff text-2xl"></i>
+      </div>
+      <span class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">
+        <%= expense.category || 'Miscellaneous' %>
+      </span>
+    </div>
+    <p class="mt-4 text-sm font-medium text-ink-500">Amount</p>
+    <p class="mt-1 text-4xl font-bold text-ink-900"><%= fmtAmt(expense.amount) %></p>
+    <p class="mt-4 text-sm font-medium text-ink-500">Date</p>
+    <p class="mt-1 text-lg font-semibold text-ink-900"><%= fmtDate(expense.date) %></p>
+  </div>
+
+  <!-- Details -->
+  <div class="lg:col-span-2 rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+    <h3 class="text-lg font-semibold text-ink-900">Details</h3>
+    <div class="mt-4 divide-y divide-ink-100">
+      <div class="flex items-start justify-between py-3">
+        <span class="text-sm text-ink-500">Category</span>
+        <span class="text-sm font-semibold text-ink-900"><%= expense.category || 'Miscellaneous' %></span>
+      </div>
+      <div class="flex items-start justify-between py-3">
+        <span class="text-sm text-ink-500">Amount</span>
+        <span class="text-sm font-semibold text-ink-900"><%= fmtAmt(expense.amount) %></span>
+      </div>
+      <div class="flex items-start justify-between py-3">
+        <span class="text-sm text-ink-500">Date</span>
+        <span class="text-sm font-semibold text-ink-900"><%= fmtDate(expense.date) %></span>
+      </div>
+      <div class="flex items-start justify-between py-3">
+        <span class="text-sm text-ink-500">Vendor / Payee</span>
+        <span class="text-sm font-semibold text-ink-900"><%= expense.vendor || '—' %></span>
+      </div>
+      <div class="py-3">
+        <span class="text-sm text-ink-500">Description</span>
+        <p class="mt-1 whitespace-pre-wrap text-sm font-medium text-ink-900"><%= expense.description || '—' %></p>
+      </div>
+      <div class="flex items-start justify-between py-3">
+        <span class="text-sm text-ink-500">Added by</span>
+        <span class="text-sm font-semibold text-ink-900"><%= expense.addedBy || '—' %></span>
+      </div>
+      <div class="flex items-start justify-between py-3">
+        <span class="text-sm text-ink-500">Record created</span>
+        <span class="text-sm font-semibold text-ink-900"><%= fmtDateTime(expense.createdAt) %></span>
+      </div>
+      <% if (expense.updatedAt) { %>
+        <div class="flex items-start justify-between py-3">
+          <span class="text-sm text-ink-500">Last updated</span>
+          <span class="text-sm font-semibold text-ink-900"><%= fmtDateTime(expense.updatedAt) %></span>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Related quick actions -->
+<div class="mt-6 rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+  <h3 class="text-lg font-semibold text-ink-900">Quick Actions</h3>
+  <div class="mt-4 flex flex-wrap gap-3">
+    <a href="/expenses/add" class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700">
+      <i class="bi bi-plus-lg"></i> Add new expense
+    </a>
+    <a href="/expenses" class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700">
+      <i class="bi bi-list-ul"></i> View all expenses
+    </a>
+    <% if (can('expenses.edit')) { %>
+      <a href="/expenses/<%= expense.id %>/edit" class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700">
+        <i class="bi bi-pencil"></i> Edit this expense
+      </a>
+    <% } %>
+  </div>
+</div>

@@ -91,6 +91,18 @@ const PERMISSION_CATALOG = [
     ],
   },
   {
+    group: 'expenses',
+    label: 'Expenses',
+    icon: 'bi-receipt-cutoff',
+    description: 'Track and manage hostel expenditures.',
+    actions: [
+      { key: 'view',   label: 'View expenses',   description: 'See the expense list and summary.' },
+      { key: 'create', label: 'Add expense',      description: 'Record a new hostel expense.' },
+      { key: 'edit',   label: 'Edit expense',     description: 'Update an existing expense entry.' },
+      { key: 'delete', label: 'Delete expense',   description: 'Remove an expense entry.' },
+    ],
+  },
+  {
     group: 'storage',
     label: 'Storage',
     icon: 'bi-hdd-fill',
@@ -131,6 +143,7 @@ function staffPermissions() {
     rooms:    { view: true, create: false, edit: false, delete: false, assign: true },
     fees:     { view: true, recordPayment: true },
     kitchen:  { view: true },
+    expenses: { view: true, create: true, edit: true, delete: false },
     users:    { view: false, create: false, edit: false, delete: false, activate: false },
     settings: { view: true, editBranding: false, manageRoles: false },
     logs:     { view: false },
