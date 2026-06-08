@@ -1,4 +1,4 @@
-<div class="mb-6">
+<div class="mb-4">
   <h2 class="text-2xl font-bold text-ink-900">Kitchen dashboard</h2>
   <p class="mt-1 text-sm text-ink-500">
     Today's meal plan — who's available, what they eat, and how many meals to prepare.
@@ -6,56 +6,56 @@
 </div>
 
 <!-- Top stat cards: total headcount + merged diet counts (students + staff) -->
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-  <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="rounded-2xl border border-ink-200 bg-white p-4 shadow-card">
     <div class="flex items-center justify-between">
-      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+      <div class="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
         <i class="bi bi-people-fill text-xl"></i>
       </div>
       <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Eating today</span>
     </div>
-    <p class="mt-4 text-sm font-medium text-ink-500">Total headcount</p>
-    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.total %></p>
-    <p class="mt-1 text-xs text-ink-500">
+    <p class="mt-3 text-sm font-medium text-ink-500">Total headcount</p>
+    <p class="mt-0.5 text-3xl font-bold text-ink-900"><%= meals.total %></p>
+    <p class="mt-0.5 text-xs text-ink-500">
       <%= availableCount %> students · <%= staff.all.length %> staff
     </p>
   </div>
 
-  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-6 shadow-card">
+  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-4 shadow-card">
     <div class="flex items-center justify-between">
-      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+      <div class="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
         <i class="bi bi-egg-fried text-xl"></i>
       </div>
     </div>
-    <p class="mt-4 text-sm font-medium text-ink-500">Veg</p>
-    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.veg %></p>
-    <p class="mt-1 text-xs text-ink-500">
+    <p class="mt-3 text-sm font-medium text-ink-500">Veg</p>
+    <p class="mt-0.5 text-3xl font-bold text-ink-900"><%= meals.veg %></p>
+    <p class="mt-0.5 text-xs text-ink-500">
       <%= dietCounts.veg + (dietCounts.unspecified || 0) %> students · <%= staff.dietCounts ? staff.dietCounts.veg : 0 %> staff
     </p>
   </div>
 
-  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-red-50 via-white to-orange-50 p-6 shadow-card">
+  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-red-50 via-white to-orange-50 p-4 shadow-card">
     <div class="flex items-center justify-between">
-      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-700">
+      <div class="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-700">
         <i class="bi bi-fire text-xl"></i>
       </div>
     </div>
-    <p class="mt-4 text-sm font-medium text-ink-500">Non-veg</p>
-    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.nonveg %></p>
-    <p class="mt-1 text-xs text-ink-500">
+    <p class="mt-3 text-sm font-medium text-ink-500">Non-veg</p>
+    <p class="mt-0.5 text-3xl font-bold text-ink-900"><%= meals.nonveg %></p>
+    <p class="mt-0.5 text-xs text-ink-500">
       <%= dietCounts.nonveg %> students · <%= staff.dietCounts ? staff.dietCounts.nonveg : 0 %> staff
     </p>
   </div>
 
-  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-6 shadow-card">
+  <div class="rounded-2xl border border-ink-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-4 shadow-card">
     <div class="flex items-center justify-between">
-      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+      <div class="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
         <i class="bi bi-egg-fill text-xl"></i>
       </div>
     </div>
-    <p class="mt-4 text-sm font-medium text-ink-500">Egg only</p>
-    <p class="mt-1 text-3xl font-bold text-ink-900"><%= meals.egg %></p>
-    <p class="mt-1 text-xs text-ink-500">
+    <p class="mt-3 text-sm font-medium text-ink-500">Egg only</p>
+    <p class="mt-0.5 text-3xl font-bold text-ink-900"><%= meals.egg %></p>
+    <p class="mt-0.5 text-xs text-ink-500">
       <%= dietCounts.eggOnly %> students · <%= staff.dietCounts ? staff.dietCounts.eggOnly : 0 %> staff
     </p>
   </div>

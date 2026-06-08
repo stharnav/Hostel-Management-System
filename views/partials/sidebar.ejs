@@ -1,6 +1,6 @@
 <aside id="sidebar"
-       class="fixed inset-y-0 left-0 z-40 w-72 transform border-r border-ink-200 bg-white transition-transform duration-300 lg:translate-x-0 -translate-x-full">
-  <div class="flex h-16 items-center justify-between border-b border-ink-200 px-6">
+       class="fixed inset-y-0 left-0 z-40 w-72 transform border-r border-ink-200 bg-white transition-transform duration-300 lg:translate-x-0 -translate-x-full flex flex-col">
+  <div class="flex h-16 items-center justify-between border-b border-ink-200 px-6 flex-shrink-0">
     <a href="/dashboard" class="flex items-center gap-2">
       <% if (brand && brand.iconUrl) { %>
         <img src="<%= brand.iconUrl %>" alt="" class="h-9 w-9 rounded-lg object-cover ring-1 ring-ink-200" />
@@ -16,7 +16,7 @@
     </button>
   </div>
 
-  <nav class="px-4 py-6">
+  <nav class="flex-1 overflow-y-auto px-4 py-6">
     <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Menu</p>
     <ul class="space-y-1">
       <li>
@@ -151,7 +151,7 @@
     </ul>
   </nav>
 
-  <div class="absolute bottom-0 left-0 right-0 border-t border-ink-200 p-4">
+  <div class="flex-shrink-0 border-t border-ink-200 p-4">
     <div class="flex items-center gap-3 rounded-lg bg-ink-50 p-3">
       <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-white font-semibold">
         <%= currentUser.name.charAt(0).toUpperCase() %>
