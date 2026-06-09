@@ -3,14 +3,16 @@
     <h2 class="text-2xl font-bold text-ink-900">Rooms</h2>
     <p class="mt-1 text-sm text-ink-500">Manage rooms and assignments</p>
   </div>
-  <a href="/rooms/add"
+  <% if (!tenantInactive) { %>
+  <a href="<%= basePath %>/rooms/add"
      class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
     <i class="bi bi-plus-lg"></i>
     Add Room
   </a>
+  <% } %>
 </div>
 
-<form method="GET" action="/rooms" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+<form method="GET" action="<%= basePath %>/rooms" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
   <div class="relative flex-1">
     <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
       <i class="bi bi-search"></i>
@@ -18,7 +20,7 @@
     <input type="search" name="q" value="<%= q || '' %>" placeholder="Search by room number, type, floor, rent…"
            class="w-full rounded-lg border border-ink-200 bg-white py-2.5 pl-10 pr-10 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
     <% if (q) { %>
-      <a href="/rooms"
+      <a href="<%= basePath %>/rooms"
          class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
          title="Clear search">
         <i class="bi bi-x-lg"></i>
@@ -38,9 +40,11 @@
     </div>
     <h3 class="text-base font-semibold text-ink-900">No rooms yet</h3>
     <p class="mt-1 text-sm text-ink-500">Add a room to begin assigning students.</p>
-    <a href="/rooms/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+    <% if (!tenantInactive) { %>
+    <a href="<%= basePath %>/rooms/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
       <i class="bi bi-plus-lg"></i> Add room
     </a>
+    <% } %>
   </div>
 <% } else { %>
   <div class="grid grid-cols-4 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -54,7 +58,7 @@
           ? 'border-emerald-300 hover:border-emerald-400'
           : (empty ? 'border-red-300 hover:border-red-400' : 'border-amber-300 hover:border-amber-400');
       %>
-      <a href="/rooms/<%= r.id %>"
+      <a href="<%= basePath %>/rooms/<%= r.id %>"
          class="group rounded-2xl border-2 <%= borderClass %> bg-white p-3 text-center shadow-card transition hover:-translate-y-0.5 hover:shadow-soft sm:p-5 sm:text-left">
         <div class="hidden items-start justify-between sm:flex">
           <div class="flex h-12 w-12 items-center justify-center rounded-xl

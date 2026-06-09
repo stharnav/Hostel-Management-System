@@ -1,7 +1,7 @@
 <aside id="sidebar"
        class="fixed inset-y-0 left-0 z-40 w-72 transform border-r border-ink-200 bg-white transition-transform duration-300 lg:translate-x-0 -translate-x-full flex flex-col">
   <div class="flex h-16 items-center justify-between border-b border-ink-200 px-6 flex-shrink-0">
-    <a href="/dashboard" class="flex items-center gap-2">
+    <a href="<%= basePath %>/dashboard" class="flex items-center gap-2">
       <% if (brand && brand.iconUrl) { %>
         <img src="<%= brand.iconUrl %>" alt="" class="h-9 w-9 rounded-lg object-cover ring-1 ring-ink-200" />
       <% } else { %>
@@ -17,148 +17,164 @@
   </div>
 
   <nav class="flex-1 overflow-y-auto px-4 py-6">
-    <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Menu</p>
-    <ul class="space-y-1">
-      <li>
-        <a href="/dashboard"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath === '/dashboard' ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-grid-1x2-fill text-lg"></i>
-          Dashboard
-        </a>
-      </li>
-      <%# Students: needs the list permission. Users with only the profile
-          permission (e.g. someone who can read individual records but
-          shouldn't see the roll call) won't see this link. %>
-      <% if (can('students.viewList')) { %>
+    <% if (isAdminRoute) { %>
+      <%# Admin sidebar — super admin panel %>
+      <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Super Admin</p>
+      <ul class="space-y-1">
         <li>
-          <a href="/students"
+          <a href="/admin/dashboard"
              class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/students') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-people-fill text-lg"></i>
-            Students
+                    <%= currentPath === '/admin/dashboard' || currentPath === '/admin' ? 'bg-red-50 text-red-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-grid-1x2-fill text-lg"></i>
+            Dashboard
           </a>
         </li>
-      <% } %>
-      <% if (can('rooms.view')) { %>
         <li>
-          <a href="/rooms"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/rooms') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-door-closed-fill text-lg"></i>
-            Rooms
+          <a href="/"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-ink-100 hover:text-ink-900">
+            <i class="bi bi-building text-lg"></i>
+            Back to Hostels
           </a>
         </li>
-      <% } %>
-      <% if (can('fees.view')) { %>
         <li>
-          <a href="/fees"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/fees') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-cash-coin text-lg"></i>
-            Fees
+          <a href="/admin/auth/logout"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-red-50 hover:text-red-700">
+            <i class="bi bi-box-arrow-right text-lg"></i>
+            Logout
           </a>
         </li>
-      <% } %>
-      <% if (can('kitchen.view')) { %>
+      </ul>
+    <% } else { %>
+      <%# Tenant sidebar %>
+      <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Menu</p>
+      <ul class="space-y-1">
         <li>
-          <a href="/kitchen"
+          <a href="<%= basePath %>/dashboard"
              class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/kitchen') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-cup-hot-fill text-lg"></i>
-            Kitchen
+                    <%= currentPath.includes('/dashboard') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-grid-1x2-fill text-lg"></i>
+            Dashboard
           </a>
         </li>
-      <% } %>
-      <% if (can('expenses.view')) { %>
-        <li>
-          <a href="/expenses"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/expenses') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-receipt-cutoff text-lg"></i>
-            Expenses
-          </a>
-        </li>
-      <% } %>
-    </ul>
+        <% if (can('students.viewList')) { %>
+          <li>
+            <a href="<%= basePath %>/students"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/students') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-people-fill text-lg"></i>
+              Students
+            </a>
+          </li>
+        <% } %>
+        <% if (can('rooms.view')) { %>
+          <li>
+            <a href="<%= basePath %>/rooms"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/rooms') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-door-closed-fill text-lg"></i>
+              Rooms
+            </a>
+          </li>
+        <% } %>
+        <% if (can('fees.view')) { %>
+          <li>
+            <a href="<%= basePath %>/fees"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/fees') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-cash-coin text-lg"></i>
+              Fees
+            </a>
+          </li>
+        <% } %>
+        <% if (can('kitchen.view')) { %>
+          <li>
+            <a href="<%= basePath %>/kitchen"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/kitchen') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-cup-hot-fill text-lg"></i>
+              Kitchen
+            </a>
+          </li>
+        <% } %>
+        <% if (can('expenses.view')) { %>
+          <li>
+            <a href="<%= basePath %>/expenses"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/expenses') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-receipt-cutoff text-lg"></i>
+              Expenses
+            </a>
+          </li>
+        <% } %>
+      </ul>
 
-    <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
-    <ul class="space-y-1">
-      <%# Users and roles are admin territory by design (managing other
-          accounts and the access-control system itself). Grouped under
-          Account so the "Menu" section stays focused on day-to-day hostel
-          operations. %>
-      <%# Activity log lives under Account — it's an audit/history view
-          rather than a day-to-day hostel operation. Visible to anyone with
-          the permission (admin by default). %>
-      <% if (can('logs.view')) { %>
+      <p class="mt-8 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Account</p>
+      <ul class="space-y-1">
+        <% if (can('logs.view')) { %>
+          <li>
+            <a href="<%= basePath %>/logs"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/logs') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-journal-text text-lg"></i>
+              Activity Log
+            </a>
+          </li>
+        <% } %>
+        <% if (can('storage.view')) { %>
+          <li>
+            <a href="<%= basePath %>/settings/storage"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/settings/storage') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-hdd-fill text-lg"></i>
+              Storage
+            </a>
+          </li>
+        <% } %>
+        <% if (currentUser && currentUser.role === 'admin') { %>
+          <li>
+            <a href="<%= basePath %>/users"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/users') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-person-badge-fill text-lg"></i>
+              Users
+            </a>
+          </li>
+          <li>
+            <a href="<%= basePath %>/settings/roles"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.includes('/settings/roles') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-shield-lock-fill text-lg"></i>
+              User Roles
+            </a>
+          </li>
+        <% } %>
         <li>
-          <a href="/logs"
+          <a href="<%= basePath %>/profile"
              class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/logs') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-journal-text text-lg"></i>
-            Activity Log
+                    <%= currentPath.includes('/profile') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-person-circle text-lg"></i>
+            My Profile
           </a>
         </li>
-      <% } %>
-      <% if (can('storage.view')) { %>
+        <% if (can('settings.view')) { %>
+          <li>
+            <a href="<%= basePath %>/settings"
+               class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                      <%= currentPath.endsWith('/settings') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+              <i class="bi bi-gear-fill text-lg"></i>
+              Settings
+            </a>
+          </li>
+        <% } %>
         <li>
-          <a href="/settings/storage"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/settings/storage') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-hdd-fill text-lg"></i>
-            Storage
+          <a href="<%= basePath %>/auth/logout"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-red-50 hover:text-red-700">
+            <i class="bi bi-box-arrow-right text-lg"></i>
+            Logout
           </a>
         </li>
-      <% } %>
-      <% if (currentUser && currentUser.role === 'admin') { %>
-        <li>
-          <a href="/users"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/users') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-person-badge-fill text-lg"></i>
-            Users
-          </a>
-        </li>
-        <li>
-          <a href="/settings/roles"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath.startsWith('/settings/roles') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-shield-lock-fill text-lg"></i>
-            User Roles
-          </a>
-        </li>
-      <% } %>
-      <li>
-        <a href="/profile"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                  <%= currentPath.startsWith('/profile') ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-          <i class="bi bi-person-circle text-lg"></i>
-          My Profile
-        </a>
-      </li>
-      <%# Settings link is the *root* settings page only — its sub-pages
-          (e.g. /settings/roles) belong to their own sidebar items. Using
-          startsWith('/settings') would double-highlight Settings whenever
-          the user is anywhere under the settings tree. %>
-      <% if (can('settings.view')) { %>
-        <li>
-          <a href="/settings"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
-                    <%= currentPath === '/settings' ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
-            <i class="bi bi-gear-fill text-lg"></i>
-            Settings
-          </a>
-        </li>
-      <% } %>
-      <li>
-        <a href="/auth/logout"
-           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-red-50 hover:text-red-700">
-          <i class="bi bi-box-arrow-right text-lg"></i>
-          Logout
-        </a>
-      </li>
-    </ul>
+      </ul>
+    <% } %>
   </nav>
 
   <div class="flex-shrink-0 border-t border-ink-200 p-4">

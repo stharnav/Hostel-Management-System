@@ -23,16 +23,18 @@ exports.categories = EXPENSE_CATEGORIES;
 exports.list = async (req, res) => {
   const filter = (req.query.category || '').toLowerCase();
   const period = req.query.period || 'month';
+  const tid = req.tenantId;
 
   let snap;
   try {
-    snap = await expensesCol().orderBy('date', 'desc').limit(500).get();
+    snap = await expensesCol().where('tenantId', '==', tid).get();
   } catch {
-    snap = await expensesCol().get();
+    snap = await expensesCol().where('tenantId', '==', tid).get();
   }
 
   let expenses = [];
   snap.forEach((doc) => expenses.push({ id: doc.id, ...doc.data() }));
+  expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   if (filter && filter !== 'all') {
     expenses = expenses.filter(
@@ -93,6 +95,7 @@ exports.create = async (req, res) => {
   try {
     const { amount, category, description, date, vendor } = req.body;
     const data = {
+      tenantId: req.tenantId,
       amount: Number(amount) || 0,
       category: category || 'Miscellaneous',
       description: (description || '').trim().slice(0, 500),
@@ -111,20 +114,20 @@ exports.create = async (req, res) => {
     });
 
     req.flash('success', 'Expense recorded successfully');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   } catch (err) {
     console.error('[expenses] create failed:', err);
     req.flash('error', 'Failed to record expense');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   }
 };
 
 exports.view = async (req, res) => {
   try {
     const doc = await expensesCol().doc(req.params.id).get();
-    if (!doc.exists) {
+    if (!doc.exists || doc.data().tenantId !== req.tenantId) {
       req.flash('error', 'Expense not found');
-      return res.redirect('/expenses');
+      return res.redirect(`/${req.tenantSlug}/expenses`);
     }
     res.render('expenses/view', {
       title: 'Expense Details',
@@ -133,16 +136,16 @@ exports.view = async (req, res) => {
   } catch (err) {
     console.error('[expenses] view failed:', err);
     req.flash('error', 'Failed to load expense');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   }
 };
 
 exports.editForm = async (req, res) => {
   try {
     const doc = await expensesCol().doc(req.params.id).get();
-    if (!doc.exists) {
+    if (!doc.exists || doc.data().tenantId !== req.tenantId) {
       req.flash('error', 'Expense not found');
-      return res.redirect('/expenses');
+      return res.redirect(`/${req.tenantSlug}/expenses`);
     }
     res.render('expenses/edit', {
       title: 'Edit Expense',
@@ -152,7 +155,7 @@ exports.editForm = async (req, res) => {
   } catch (err) {
     console.error('[expenses] editForm failed:', err);
     req.flash('error', 'Failed to load expense');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   }
 };
 
@@ -161,9 +164,9 @@ exports.update = async (req, res) => {
     const { amount, category, description, date, vendor } = req.body;
     const ref = expensesCol().doc(req.params.id);
     const doc = await ref.get();
-    if (!doc.exists) {
+    if (!doc.exists || doc.data().tenantId !== req.tenantId) {
       req.flash('error', 'Expense not found');
-      return res.redirect('/expenses');
+      return res.redirect(`/${req.tenantSlug}/expenses`);
     }
 
     await ref.update({
@@ -183,20 +186,20 @@ exports.update = async (req, res) => {
     });
 
     req.flash('success', 'Expense updated');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   } catch (err) {
     console.error('[expenses] update failed:', err);
     req.flash('error', 'Failed to update expense');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   }
 };
 
 exports.remove = async (req, res) => {
   try {
     const doc = await expensesCol().doc(req.params.id).get();
-    if (!doc.exists) {
+    if (!doc.exists || doc.data().tenantId !== req.tenantId) {
       req.flash('error', 'Expense not found');
-      return res.redirect('/expenses');
+      return res.redirect(`/${req.tenantSlug}/expenses`);
     }
 
     await expensesCol().doc(req.params.id).delete();
@@ -208,10 +211,10 @@ exports.remove = async (req, res) => {
     });
 
     req.flash('success', 'Expense deleted');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   } catch (err) {
     console.error('[expenses] remove failed:', err);
     req.flash('error', 'Failed to delete expense');
-    res.redirect('/expenses');
+    res.redirect(`/${req.tenantSlug}/expenses`);
   }
 };

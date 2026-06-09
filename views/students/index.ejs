@@ -17,8 +17,8 @@
     <h2 class="text-2xl font-bold text-ink-900">Students</h2>
     <p class="mt-1 text-sm text-ink-500">Manage residents and their records</p>
   </div>
-  <% if (can('students.create')) { %>
-    <a href="/students/add"
+  <% if (can('students.create') && !tenantInactive) { %>
+    <a href="<%= basePath %>/students/add"
        class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
       <i class="bi bi-person-plus-fill"></i>
       Add Student
@@ -27,7 +27,7 @@
 </div>
 
 <!-- Search + filter -->
-<form method="GET" action="/students" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+<form method="GET" action="<%= basePath %>/students" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
   <div class="relative flex-1">
     <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
       <i class="bi bi-search"></i>
@@ -35,7 +35,7 @@
     <input type="search" name="q" value="<%= q %>" placeholder="Search by name, email, phone, institute…"
            class="w-full rounded-lg border border-ink-200 bg-white py-2.5 pl-10 pr-10 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
     <% if (q) { %>
-      <a href="/students?status=<%= filter %>"
+      <a href="<%= basePath %>/students?status=<%= filter %>"
          class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
          title="Clear search">
         <i class="bi bi-x-lg"></i>
@@ -64,7 +64,7 @@
 <div class="mb-4 flex flex-wrap items-center gap-2">
   <% filterDefs.forEach(function(f) {
        const active = f.k === filter;
-       const url = '/students?status=' + f.k + (q ? ('&q=' + encodeURIComponent(q)) : ''); %>
+       const url = basePath + '/students?status=' + f.k + (q ? ('&q=' + encodeURIComponent(q)) : ''); %>
     <a href="<%= url %>"
        class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition
               <%= active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-100' %>">
@@ -91,8 +91,8 @@
           Get started by adding your first student.
         <% } %>
       </p>
-      <% if (!q && filter === 'all') { %>
-        <a href="/students/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+      <% if (!q && filter === 'all' && !tenantInactive) { %>
+        <a href="<%= basePath %>/students/add" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
           <i class="bi bi-plus-lg"></i> Add student
         </a>
       <% } %>
@@ -140,17 +140,17 @@
             </div>
             <div class="flex items-center gap-1 flex-shrink-0" data-row-action-stop>
               <% if (can('students.viewProfile')) { %>
-                <a href="/students/<%= s.id %>" class="rounded p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-700">
+                <a href="<%= basePath %>/students/<%= s.id %>" class="rounded p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-700">
                   <i class="bi bi-eye text-xs"></i>
                 </a>
               <% } %>
-              <% if (can('students.edit')) { %>
-                <a href="/students/<%= s.id %>/edit" class="rounded p-1.5 text-ink-400 hover:bg-amber-50 hover:text-amber-700">
+              <% if (can('students.edit') && !tenantInactive) { %>
+                <a href="<%= basePath %>/students/<%= s.id %>/edit" class="rounded p-1.5 text-ink-400 hover:bg-amber-50 hover:text-amber-700">
                   <i class="bi bi-pencil text-xs"></i>
                 </a>
               <% } %>
-              <% if (can('students.delete')) { %>
-                <form method="POST" action="/students/<%= s.id %>?_method=DELETE" class="inline"
+              <% if (can('students.delete') && !tenantInactive) { %>
+                <form method="POST" action="<%= basePath %>/students/<%= s.id %>?_method=DELETE" class="inline"
                       onsubmit="return confirm('Delete this student?')">
                   <button type="submit" class="rounded p-1.5 text-ink-400 hover:bg-red-50 hover:text-red-700">
                     <i class="bi bi-trash text-xs"></i>
@@ -239,19 +239,19 @@
               <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
                 <div class="inline-flex items-center gap-1" data-row-action-stop>
                   <% if (can('students.viewProfile')) { %>
-                    <a href="/students/<%= s.id %>" title="View"
+                    <a href="<%= basePath %>/students/<%= s.id %>" title="View"
                        class="rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700">
                       <i class="bi bi-eye"></i>
                     </a>
                   <% } %>
-                  <% if (can('students.edit')) { %>
-                    <a href="/students/<%= s.id %>/edit" title="Edit"
+                  <% if (can('students.edit') && !tenantInactive) { %>
+                    <a href="<%= basePath %>/students/<%= s.id %>/edit" title="Edit"
                        class="rounded-lg p-2 text-ink-500 hover:bg-amber-50 hover:text-amber-700">
                       <i class="bi bi-pencil"></i>
                     </a>
                   <% } %>
-                  <% if (can('students.delete')) { %>
-                    <form method="POST" action="/students/<%= s.id %>?_method=DELETE" class="inline"
+                  <% if (can('students.delete') && !tenantInactive) { %>
+                    <form method="POST" action="<%= basePath %>/students/<%= s.id %>?_method=DELETE" class="inline"
                           onsubmit="return confirm('Delete this student?')">
                       <button type="submit" title="Delete"
                               class="rounded-lg p-2 text-ink-500 hover:bg-red-50 hover:text-red-700">
@@ -311,7 +311,7 @@
           <i class="bi bi-clock-history text-lg text-indigo-600"></i> View history
         </a>
       <% } %>
-      <% if (can('students.edit')) { %>
+      <% if (can('students.edit') && !tenantInactive) { %>
         <a id="srm-edit" href="#"
            class="inline-flex items-center gap-3 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700">
           <i class="bi bi-pencil-square text-lg text-amber-600"></i> Edit profile
@@ -323,7 +323,7 @@
           on leave for a student who already left) are hidden by the click
           handler — but we still server-render them with data-status-key
           attributes so the handler can toggle them. %>
-      <% if (can('students.changeStatus')) { %>
+      <% if (can('students.changeStatus') && !tenantInactive) { %>
         <div class="my-1 border-t border-ink-100"></div>
         <p class="px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Lifecycle</p>
         <%# Hidden by default; shown by the click handler when the row's
@@ -364,6 +364,7 @@
 </div>
 
 <script>
+  const BASE = '<%= basePath %>';
   // Row-action modal: clicking a student row opens a popup with the
   // actions available for that student. Inline action icons in the last
   // column set data-row-action-stop, so they don't trigger this.
@@ -398,9 +399,9 @@
       title.textContent = name;
       subtitle.textContent = `Status: ${STATUS_LABEL[status] || status}`;
 
-      if (viewLink) viewLink.href = '/students/' + encodeURIComponent(id);
-      if (editLink) editLink.href = '/students/' + encodeURIComponent(id) + '/edit';
-      if (historyLink) historyLink.href = '/students/' + encodeURIComponent(id) + '/history';
+      if (viewLink) viewLink.href = BASE + '/students/' + encodeURIComponent(id);
+      if (editLink) editLink.href = BASE + '/students/' + encodeURIComponent(id) + '/edit';
+      if (historyLink) historyLink.href = BASE + '/students/' + encodeURIComponent(id) + '/history';
 
       // Show only the lifecycle buttons that make sense for the row's
       // current status. Buttons that don't apply are hidden — they remain
@@ -413,7 +414,7 @@
       let visibleCount = 0;
       lifecycleForms.forEach((form) => {
         if (allowed(form)) {
-          form.action = '/students/' + encodeURIComponent(id) + '/status';
+          form.action = BASE + '/students/' + encodeURIComponent(id) + '/status';
           form.classList.remove('hidden');
           visibleCount++;
         } else {

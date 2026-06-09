@@ -9,13 +9,25 @@
   const diets       = [{v:'veg',l:'Vegetarian'},{v:'nonveg',l:'Non-vegetarian'},{v:'eggOnly',l:'Veg + Egg only'}];
 %>
 
+<% if (tenantInactive) { %>
+<div class="rounded-2xl border border-ink-200 bg-white p-12 text-center shadow-card">
+  <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+    <i class="bi bi-lock-fill text-3xl"></i>
+  </div>
+  <h3 class="text-base font-semibold text-ink-900">Hostel is inactive</h3>
+  <p class="mt-1 text-sm text-ink-500">You cannot edit students while the hostel is inactive.</p>
+  <a href="<%= basePath %>/students/<%= student.id %>" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+    <i class="bi bi-arrow-left"></i> Back to student
+  </a>
+</div>
+<% } else { %>
 <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   <div>
     <h2 class="text-2xl font-bold text-ink-900">Edit Student</h2>
     <p class="mt-1 text-sm text-ink-500">Update <%= student.name %>'s information</p>
   </div>
   <div class="flex items-center gap-3">
-    <a href="/students/<%= student.id %>" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <a href="<%= basePath %>/students/<%= student.id %>" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
     <button type="submit"
             class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
       <i class="bi bi-check2"></i> Update
@@ -23,7 +35,7 @@
   </div>
 </div>
 
-<form method="POST" action="/students/<%= student.id %>?_method=PUT" enctype="multipart/form-data" class="space-y-6">
+<form method="POST" action="<%= basePath %>/students/<%= student.id %>?_method=PUT" enctype="multipart/form-data" class="space-y-6">
   <!-- Identity -->
   <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
     <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink-900">
@@ -224,9 +236,10 @@
   </div>
 
   <div class="flex items-center justify-end gap-3">
-    <a href="/students/<%= student.id %>" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+    <a href="<%= basePath %>/students/<%= student.id %>" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
     <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
       <i class="bi bi-check2"></i> Update
     </button>
   </div>
 </form>
+<% } %>

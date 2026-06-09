@@ -7,7 +7,7 @@
   <!-- Quick links to admin sub-pages. Kept compact so the page still
        leads with branding. -->
   <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-    <a href="/settings/roles"
+    <a href="<%= basePath %>/settings/roles"
        class="flex items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 via-white to-emerald-50 p-4 shadow-card transition hover:border-brand-300 hover:shadow-soft">
       <div class="flex items-center gap-3">
         <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow">
@@ -21,7 +21,7 @@
       </div>
       <i class="bi bi-chevron-right text-2xl text-brand-500"></i>
     </a>
-    <a href="/settings/storage"
+    <a href="<%= basePath %>/settings/storage"
        class="flex items-center justify-between gap-4 rounded-2xl border border-ink-200 bg-white p-4 shadow-card transition hover:border-brand-300 hover:shadow-soft">
       <div class="flex items-center gap-3">
         <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-brand-600 text-white shadow">
@@ -39,7 +39,7 @@
 <% } else if (can('storage.view')) { %>
   <!-- Non-admins who can see settings and have storage.view see the
        storage quick-link from here as well. -->
-  <a href="/settings/storage"
+  <a href="<%= basePath %>/settings/storage"
      class="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-ink-200 bg-white p-4 shadow-card transition hover:border-brand-300 hover:shadow-soft">
     <div class="flex items-center gap-3">
       <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-brand-600 text-white shadow">
@@ -65,91 +65,106 @@
     <% } %>
   </div>
 
-  <form method="POST" action="/settings/branding" enctype="multipart/form-data">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-      <!-- Icon preview + upload -->
-      <div class="md:col-span-1">
-        <label class="mb-1.5 block text-sm font-medium text-ink-700">App icon</label>
-        <div class="flex flex-col items-center rounded-xl border-2 border-dashed border-ink-200 bg-ink-50 p-5">
-          <% if (brand.iconUrl) { %>
-            <img src="<%= brand.iconUrl %>" alt="App icon"
-                 class="h-20 w-20 rounded-2xl object-cover shadow ring-1 ring-ink-200" />
-          <% } else { %>
-            <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-600 text-white shadow">
-              <i class="bi bi-building text-3xl"></i>
-            </div>
+  <% if (tenantInactive) { %>
+    <div class="rounded-2xl border border-ink-200 bg-white p-12 text-center shadow-card">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+        <i class="bi bi-lock-fill text-3xl"></i>
+      </div>
+      <h3 class="text-base font-semibold text-ink-900">Hostel is inactive</h3>
+      <p class="mt-1 text-sm text-ink-500">You cannot change settings while the hostel is inactive.</p>
+      <a href="<%= basePath %>/settings" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+        <i class="bi bi-arrow-left"></i> Back to settings
+      </a>
+    </div>
+  <% } else { %>
+    <form method="POST" action="<%= basePath %>/settings/branding" enctype="multipart/form-data">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <!-- Icon preview + upload -->
+        <div class="md:col-span-1">
+          <label class="mb-1.5 block text-sm font-medium text-ink-700">App icon</label>
+          <div class="flex flex-col items-center rounded-xl border-2 border-dashed border-ink-200 bg-ink-50 p-5">
+            <% if (brand.iconUrl) { %>
+              <img src="<%= brand.iconUrl %>" alt="App icon"
+                   class="h-20 w-20 rounded-2xl object-cover shadow ring-1 ring-ink-200" />
+            <% } else { %>
+              <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-600 text-white shadow">
+                <i class="bi bi-building text-3xl"></i>
+              </div>
+            <% } %>
+            <p class="mt-3 text-xs text-ink-500">Square PNG/JPG, auto-resized to 256×256</p>
+
+            <% if (currentUser.role === 'admin') { %>
+              <label class="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700">
+                <i class="bi bi-upload"></i> Choose image
+                <input type="file" name="icon" accept="image/*" class="hidden"
+                       onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''" />
+              </label>
+              <span class="mt-2 text-xs text-ink-500"></span>
+            <% } %>
+          </div>
+
+          <% if (currentUser.role === 'admin' && brand.iconUrl) { %>
+            <% if (!tenantInactive) { %>
+              <form method="POST" action="<%= basePath %>/settings/branding/reset-icon" class="mt-2"
+                    onsubmit="return confirm('Remove the custom icon and revert to default?')">
+                <button class="text-xs font-medium text-red-600 hover:underline">
+                  <i class="bi bi-x-circle"></i> Reset to default icon
+                </button>
+              </form>
+            <% } %>
           <% } %>
-          <p class="mt-3 text-xs text-ink-500">Square PNG/JPG, auto-resized to 256×256</p>
+        </div>
+
+        <!-- App name + actions -->
+        <div class="md:col-span-2">
+          <label class="mb-1.5 block text-sm font-medium text-ink-700">App name</label>
+          <input name="appName" value="<%= brand.appName %>" maxlength="60"
+                 <%= currentUser.role === 'admin' ? '' : 'disabled' %>
+                 class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-ink-50" />
+          <p class="mt-1 text-xs text-ink-500">
+            Shown in the sidebar, navbar title, login screen, and browser tab.
+          </p>
+
+          <!-- Currency -->
+          <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="sm:col-span-1">
+              <label class="mb-1.5 block text-sm font-medium text-ink-700">Currency symbol</label>
+              <input name="currencySymbol" value="<%= brand.currencySymbol || 'Rs.' %>" maxlength="5"
+                     <%= currentUser.role === 'admin' ? '' : 'disabled' %>
+                     class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-center text-base font-semibold focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-ink-50" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="mb-1.5 block text-sm font-medium text-ink-700">Currency code</label>
+              <input name="currencyCode" value="<%= brand.currencyCode || 'NPR' %>" maxlength="5"
+                     placeholder="INR / NPR / USD / EUR …"
+                     <%= currentUser.role === 'admin' ? '' : 'disabled' %>
+                     class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm uppercase focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-ink-50" />
+            </div>
+            <p class="sm:col-span-3 text-xs text-ink-500">
+              Used everywhere money is shown — room rent, fees, etc.
+              Common symbols: <code class="rounded bg-ink-100 px-1.5">₹</code>
+              <code class="rounded bg-ink-100 px-1.5">रु</code>
+              <code class="rounded bg-ink-100 px-1.5">$</code>
+              <code class="rounded bg-ink-100 px-1.5">€</code>
+              <code class="rounded bg-ink-100 px-1.5">£</code>
+              <code class="rounded bg-ink-100 px-1.5">¥</code>
+            </p>
+          </div>
 
           <% if (currentUser.role === 'admin') { %>
-            <label class="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700">
-              <i class="bi bi-upload"></i> Choose image
-              <input type="file" name="icon" accept="image/*" class="hidden"
-                     onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''" />
-            </label>
-            <span class="mt-2 text-xs text-ink-500"></span>
+            <div class="mt-5 flex items-center justify-end gap-3">
+              <a href="<%= basePath %>/settings" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
+              <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+                <i class="bi bi-check2"></i> Save settings
+              </button>
+            </div>
+          <% } else { %>
+            <p class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              <i class="bi bi-lock-fill"></i> Only admins can change branding.
+            </p>
           <% } %>
         </div>
-
-        <% if (currentUser.role === 'admin' && brand.iconUrl) { %>
-          <form method="POST" action="/settings/branding/reset-icon" class="mt-2"
-                onsubmit="return confirm('Remove the custom icon and revert to default?')">
-            <button class="text-xs font-medium text-red-600 hover:underline">
-              <i class="bi bi-x-circle"></i> Reset to default icon
-            </button>
-          </form>
-        <% } %>
       </div>
-
-      <!-- App name + actions -->
-      <div class="md:col-span-2">
-        <label class="mb-1.5 block text-sm font-medium text-ink-700">App name</label>
-        <input name="appName" value="<%= brand.appName %>" maxlength="60"
-               <%= currentUser.role === 'admin' ? '' : 'disabled' %>
-               class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-ink-50" />
-        <p class="mt-1 text-xs text-ink-500">
-          Shown in the sidebar, navbar title, login screen, and browser tab.
-        </p>
-
-        <!-- Currency -->
-        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div class="sm:col-span-1">
-            <label class="mb-1.5 block text-sm font-medium text-ink-700">Currency symbol</label>
-            <input name="currencySymbol" value="<%= brand.currencySymbol || 'Rs.' %>" maxlength="5"
-                   <%= currentUser.role === 'admin' ? '' : 'disabled' %>
-                   class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-center text-base font-semibold focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-ink-50" />
-          </div>
-          <div class="sm:col-span-2">
-            <label class="mb-1.5 block text-sm font-medium text-ink-700">Currency code</label>
-            <input name="currencyCode" value="<%= brand.currencyCode || 'NPR' %>" maxlength="5"
-                   placeholder="INR / NPR / USD / EUR …"
-                   <%= currentUser.role === 'admin' ? '' : 'disabled' %>
-                   class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm uppercase focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-ink-50" />
-          </div>
-          <p class="sm:col-span-3 text-xs text-ink-500">
-            Used everywhere money is shown — room rent, fees, etc.
-            Common symbols: <code class="rounded bg-ink-100 px-1.5">₹</code>
-            <code class="rounded bg-ink-100 px-1.5">रु</code>
-            <code class="rounded bg-ink-100 px-1.5">$</code>
-            <code class="rounded bg-ink-100 px-1.5">€</code>
-            <code class="rounded bg-ink-100 px-1.5">£</code>
-            <code class="rounded bg-ink-100 px-1.5">¥</code>
-          </p>
-        </div>
-
-        <% if (currentUser.role === 'admin') { %>
-          <div class="mt-5 flex items-center justify-end gap-3">
-            <a href="/settings" class="rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-ink-50">Cancel</a>
-            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
-              <i class="bi bi-check2"></i> Save settings
-            </button>
-          </div>
-        <% } else { %>
-          <p class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-            <i class="bi bi-lock-fill"></i> Only admins can change branding.
-          </p>
-        <% } %>
-      </div>
-    </div>
-  </form>
+    </form>
+  <% } %>
 </div>

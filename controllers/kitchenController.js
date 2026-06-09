@@ -1,15 +1,8 @@
-// Kitchen dashboard controller.
-// Shows who's eating today: available students split by veg / non-veg, and
-// staff members. "Available" means active (not on leave, not left), so the
-// kitchen knows how many meals to plan.
-
 const { db } = require('../config/firebase');
 
 const studentsCol = () => db.collection('students');
 const usersCol = () => db.collection('users');
 
-// Students are "available for meals" when they're actively living in the
-// hostel. 'on_leave' and 'left' students are excluded.
 const AVAILABLE_STATUSES = ['active', 'returned'];
 
 const DIET_LABELS = {
@@ -19,12 +12,12 @@ const DIET_LABELS = {
 };
 
 exports.index = async (req, res) => {
+  const tid = req.tenantId;
   const [studentsSnap, usersSnap] = await Promise.all([
-    studentsCol().get(),
-    usersCol().get(),
+    studentsCol().where('tenantId', '==', tid).get(),
+    usersCol().where('tenantId', '==', tid).get(),
   ]);
 
-  // Students — split by dietary preference.
   const allStudents = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const availableStudents = allStudents.filter((s) =>
     AVAILABLE_STATUSES.includes(s.status || 'active')
@@ -39,8 +32,6 @@ exports.index = async (req, res) => {
     byDiet[key].push(s);
   });
 
-  // Staff + admin users (everyone in `users` collection). Each one carries a
-  // dietary preference that rolls into the same meal plan as the students.
   const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const staffCounts = { admin: 0, staff: 0 };
   const staffByDiet = { veg: [], nonveg: [], eggOnly: [] };
@@ -48,15 +39,11 @@ exports.index = async (req, res) => {
   users.forEach((u) => {
     const role = (u.role || 'staff').toLowerCase();
     if (staffCounts[role] !== undefined) staffCounts[role] += 1;
-    // Default to veg if a user predates the dietary field.
     const diet = DIET_LABELS[u.dietary] ? u.dietary : 'veg';
     staffDietCounts[diet] += 1;
     staffByDiet[diet].push(u);
   });
 
-  // Tally meal plan: every student + every staff member, each counted under
-  // their own dietary choice. Unspecified students still default to veg so the
-  // count stays meaningful when staff haven't been migrated yet.
   const meals = {
     veg: dietCounts.veg + (dietCounts.unspecified || 0) + staffDietCounts.veg,
     nonveg: dietCounts.nonveg + staffDietCounts.nonveg,
@@ -64,11 +51,6 @@ exports.index = async (req, res) => {
     total: availableStudents.length + users.length,
   };
 
-  // Merge staff into each per-diet list so the view can render a single,
-  // unified "who's eating today" roll call. Staff rows carry a marker so the
-  // template can render a different pill/avatar treatment. Unspecified
-  // students default to veg, so we bucket them with the veg column so the
-  // kitchen sees a complete roll call.
   const tagged = (items, kind) => items.map((x) => ({ ...x, _kind: kind }));
   const mergedByDiet = {
     veg: [

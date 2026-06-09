@@ -3,11 +3,13 @@
     <h2 class="text-2xl font-bold text-ink-900">Users</h2>
     <p class="mt-1 text-sm text-ink-500">Manage admin and staff accounts</p>
   </div>
-  <a href="/users/add"
+  <% if (!tenantInactive) { %>
+  <a href="<%= basePath %>/users/add"
      class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
     <i class="bi bi-person-plus-fill"></i>
     Add User
   </a>
+  <% } %>
 </div>
 
 <div class="rounded-2xl border border-ink-200 bg-white shadow-card">
@@ -74,24 +76,26 @@
             </td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-ink-500"><%= new Date(u.createdAt).toLocaleDateString() %></td>
             <td class="whitespace-nowrap px-6 py-4 text-right">
-              <a href="/users/<%= u.id %>/edit"
+              <% if (!tenantInactive) { %>
+              <a href="<%= basePath %>/users/<%= u.id %>/edit"
                  class="inline-flex rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700" title="Edit">
                 <i class="bi bi-pencil-square"></i>
               </a>
               <% if (u.id !== currentUser.id) { %>
-                <form method="POST" action="/users/<%= u.id %>/toggle-active" class="inline"
+                <form method="POST" action="<%= basePath %>/users/<%= u.id %>/toggle-active" class="inline"
                       onsubmit="return confirm('<%= active ? 'Deactivate' : 'Reactivate' %> this user?')">
                   <button class="rounded-lg p-2 <%= active ? 'text-ink-500 hover:bg-amber-50 hover:text-amber-700' : 'text-ink-500 hover:bg-emerald-50 hover:text-emerald-700' %>"
                           title="<%= active ? 'Deactivate' : 'Reactivate' %>">
                     <i class="bi bi-<%= active ? 'pause-fill' : 'play-fill' %>"></i>
                   </button>
                 </form>
-                <form method="POST" action="/users/<%= u.id %>?_method=DELETE" class="inline"
+                <form method="POST" action="<%= basePath %>/users/<%= u.id %>?_method=DELETE" class="inline"
                       onsubmit="return confirm('Delete this user?')">
                   <button class="rounded-lg p-2 text-ink-500 hover:bg-red-50 hover:text-red-700" title="Delete">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
+              <% } %>
               <% } else { %>
                 <span class="ml-1 text-xs text-ink-400">(you)</span>
               <% } %>

@@ -68,7 +68,7 @@
 <div class="mt-6 flex flex-wrap items-center gap-2">
   <% filters.forEach(function(f) {
        const active = f.k === filter; %>
-    <a href="/fees?status=<%= f.k %>"
+    <a href="<%= basePath %>/fees?status=<%= f.k %>"
        class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition
               <%= active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-100' %>">
       <%= f.l %>
@@ -113,7 +113,7 @@
                }[f.status]; %>
             <tr class="hover:bg-ink-50">
               <td class="whitespace-nowrap px-6 py-4">
-                <a href="/students/<%= s.id %>" class="flex items-center gap-3">
+                <a href="<%= basePath %>/students/<%= s.id %>" class="flex items-center gap-3">
                   <% if (s.photo && s.photo.url) { %>
                     <img src="<%= s.photo.url %>" class="h-10 w-10 rounded-full object-cover" />
                   <% } else { %>
@@ -163,17 +163,21 @@
               </td>
               <td class="whitespace-nowrap px-6 py-4 text-right">
                 <% if (f.status === 'pending') { %>
+                  <% if (!tenantInactive) { %>
                   <button type="button"
                           class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100"
                           onclick="openPay('<%= s.id %>', '<%= s.name.replace(/'/g, "\\'") %>', <%= s.amount %>, true)">
                     <i class="bi bi-fast-forward-circle"></i> Pay early
                   </button>
+                  <% } %>
                 <% } else { %>
+                  <% if (!tenantInactive) { %>
                   <button type="button"
                           class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
                           onclick="openPay('<%= s.id %>', '<%= s.name.replace(/'/g, "\\'") %>', <%= s.amount %>, false)">
                     <i class="bi bi-cash-coin"></i> Mark paid
                   </button>
+                  <% } %>
                 <% } %>
               </td>
             </tr>
@@ -198,6 +202,7 @@
       <strong>Paying ahead.</strong> This payment will be credited to the next 30-day cycle.
     </div>
     <p class="mb-4 text-sm text-ink-500">Recording payment for <strong id="pay-name"></strong>.</p>
+    <% if (!tenantInactive) { %>
     <form id="pay-form" method="POST" class="space-y-4">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-ink-700">Amount (<%= brand.currencySymbol %>)</label>
@@ -227,14 +232,16 @@
         </button>
       </div>
     </form>
+    <% } %>
   </div>
 </div>
 
 <script>
+  const BASE = '<%= basePath %>';
   function openPay(id, name, amount, isEarly) {
     const m = document.getElementById('pay-modal');
     const f = document.getElementById('pay-form');
-    f.action = '/fees/' + id + '/pay';
+    f.action = BASE + '/fees/' + id + '/pay';
     document.getElementById('pay-name').textContent = name;
     document.getElementById('pay-amount').value = amount || '';
     document.getElementById('pay-title').textContent = isEarly ? 'Pay early' : 'Record payment';

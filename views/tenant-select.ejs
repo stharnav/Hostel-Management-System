@@ -1,0 +1,47 @@
+<div class="w-full max-w-md">
+  <div class="rounded-2xl bg-white shadow-soft p-8">
+    <div class="text-center mb-8">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-100 text-brand-700 mb-4">
+        <i class="bi bi-building text-3xl"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-ink-900">Hostel Manager</h1>
+      <p class="text-ink-500 mt-2">Select your hostel to continue</p>
+    </div>
+
+    <% if (tenants.length === 0) { %>
+      <div class="text-center py-8">
+        <p class="text-ink-500">No hostels have been created yet.</p>
+        <p class="text-sm text-ink-400 mt-2">Contact your system administrator to create a hostel.</p>
+      </div>
+    <% } else { %>
+      <div class="space-y-3">
+        <% tenants.forEach(function(t) { %>
+          <a href="/<%= t.slug %>/auth/login"
+             class="flex items-center gap-4 rounded-xl border border-ink-200 p-4 hover:border-brand-300 hover:bg-brand-50 transition group">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-brand-700 group-hover:bg-brand-200 transition">
+              <i class="bi bi-building text-xl"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <p class="font-semibold text-ink-900 truncate"><%= t.name %></p>
+                <% if (t.active === false) { %>
+                  <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    <i class="bi bi-lock-fill mr-0.5"></i>Inactive
+                  </span>
+                <% } %>
+              </div>
+              <p class="text-xs text-ink-400">/<%= t.slug %></p>
+            </div>
+            <i class="bi bi-chevron-right text-ink-300 group-hover:text-brand-500 transition"></i>
+          </a>
+        <% }); %>
+      </div>
+    <% } %>
+
+    <div class="mt-8 text-center">
+      <a href="/admin/auth/login" class="text-xs text-ink-400 hover:text-ink-600 transition">
+        <i class="bi bi-shield-lock mr-1"></i>Super Admin
+      </a>
+    </div>
+  </div>
+</div>

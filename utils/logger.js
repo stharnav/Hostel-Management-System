@@ -1,28 +1,11 @@
-// Activity log — records who did what and when across the app. Backed by a
-// `logs` collection in Firestore so the history is queryable, paginated, and
-// survives a process restart (unlike a console/file log that gets rotated
-// away).
-//
-// Each entry is a flat document — we never read these as a whole, only in
-// paged slices by createdAt-desc, so denormalizing everything onto the doc
-// (instead of a separate user table) keeps the read path a single query.
-//
-// Usage:
-//   const log = require('../utils/logger');
-//   await log(req, 'student.create', { entity: 'student', entityId: id, summary: `Added student ${name}` });
-//
-// The first argument can be either an Express `req` (we pull the session
-// user + IP + user-agent) or a plain user object. Pass a `req` when called
-// from a controller; the plain object form is for non-request paths (cron,
-// seed scripts, etc).
+// Activity log — records who did what and when across the app.
+// Now tenant-aware: logs are scoped to a tenant via the tenantId field.
 
 const { db } = require('../config/firebase');
 
 const logsCol = () => db.collection('logs');
 
-// Action vocabulary. Adding a new action is just a string — the catalog
-// below is for the UI (filter dropdown, icon/color). Keep keys stable once
-// they ship; old logs reference them by key.
+// Action vocabulary.
 const ACTION_CATALOG = {
   // Auth
   'auth.login':           { group: 'auth',     label: 'Signed in',                  icon: 'bi-box-arrow-in-right', color: 'emerald' },
@@ -59,9 +42,6 @@ const ACTION_CATALOG = {
   'settings.update_branding': { group: 'users', label: 'Updated branding',      icon: 'bi-palette-fill',        color: 'indigo' },
 };
 
-// Quick lookup so views can resolve an action key to its display metadata.
-// Missing keys fall back to a neutral entry so an old log row never crashes
-// the page.
 const ACTION_INDEX = (() => {
   const idx = { ...ACTION_CATALOG };
   return idx;
@@ -84,16 +64,10 @@ const COLOR_CLASSES = {
   indigo:  { bg: 'bg-indigo-50',  text: 'text-indigo-700',  ring: 'ring-indigo-200' },
 };
 
-/**
- * Resolve the actor from an Express request. Returns null if we can't
- * identify them (e.g. an anonymous failed-login attempt).
- */
 function actorFromReq(req) {
   if (!req) return null;
   const u = req.session && req.session.user;
   if (!u) {
-    // For login attempts, the email is the only signal we have. Don't
-    // include the password — it'd be a leak.
     return {
       id: null,
       name: req.body && req.body.email ? String(req.body.email) : 'Anonymous',
@@ -110,13 +84,7 @@ function actorFromReq(req) {
 }
 
 /**
- * Write a log entry. Designed to be fire-and-forget: any failure here is
- * logged to stderr but never thrown to the caller, so a logger outage
- * can't take down the action it was supposed to annotate.
- *
- * @param {object} source   Express req (preferred) or { user, ip, ua } object.
- * @param {string} action   One of the keys in ACTION_CATALOG.
- * @param {object} [meta]   { entity, entityId, summary, details }
+ * Write a log entry. Now includes tenantId from req.tenantId.
  */
 async function record(source, action, meta = {}) {
   try {
@@ -133,6 +101,7 @@ async function record(source, action, meta = {}) {
 
     const ip = (source && (source.ip || (source.headers && source.headers['x-forwarded-for']))) || null;
     const ua = (source && source.headers && source.headers['user-agent']) || (source && source.ua) || null;
+    const tenantId = (source && source.tenantId) || null;
 
     const entry = {
       action,
@@ -142,50 +111,48 @@ async function record(source, action, meta = {}) {
         email: actor.email,
         role: actor.role,
       },
-      entity: meta.entity || null,    // e.g. 'student', 'room', 'user'
+      entity: meta.entity || null,
       entityId: meta.entityId || null,
-      summary: meta.summary || null,  // one-line description for the feed
-      details: meta.details || null,  // arbitrary structured data
+      summary: meta.summary || null,
+      details: meta.details || null,
       ip: ip ? String(ip).split(',')[0].trim() : null,
       userAgent: ua ? String(ua).slice(0, 240) : null,
+      tenantId,
       createdAt: new Date().toISOString(),
     };
 
-    // Fire and forget — we don't want to delay a redirect because Firestore
-    // is being slow. If you need to await for tests, just call record()
-    // directly (the await is safe).
     db.collection('logs').add(entry).catch((err) => {
       console.warn('[logger] failed to write log:', err.message);
     });
   } catch (err) {
-    // Last-ditch: never let a logging failure bubble out.
     console.warn('[logger] record() crashed:', err.message);
   }
 }
 
 /**
- * Page through the logs newest-first with simple filters. Returns
- * `{ items, hasMore, total }`. `total` is computed via a count query when
- * no filter is applied; for filtered queries we return null since the
- * Firestore count API would need a separate aggregation anyway.
+ * Page through the logs newest-first, scoped to a tenant.
  */
-async function list({ action, actor, from, to, pageSize = 25, page = 1 } = {}) {
+async function list({ action, actor, from, to, tenantId, pageSize = 25, page = 1 } = {}) {
   const size = Math.min(Math.max(parseInt(pageSize, 10) || 25, 1), 100);
   const pageNum = Math.max(parseInt(page, 10) || 1, 1);
 
-  // Build the base query. We always order by createdAt desc, so the most
-  // recent log is first. Filters are stacked only when provided so the
-  // index usage stays simple.
-  let q = logsCol().orderBy('createdAt', 'desc');
+  let q = logsCol();
+  if (tenantId) q = q.where('tenantId', '==', tenantId);
   if (action) q = q.where('action', '==', action);
   if (actor)  q = q.where('actor.id', '==', actor);
   if (from)   q = q.where('createdAt', '>=', from);
   if (to)     q = q.where('createdAt', '<=', to);
 
+  // Order in JS to avoid needing composite Firestore indexes
+  const allSnap = await q.limit(1000).get();
+  const sorted = allSnap.docs.sort((a, b) => {
+    const ca = a.data().createdAt || '';
+    const cb = b.data().createdAt || '';
+    return cb.localeCompare(ca);
+  });
+
   const offset = (pageNum - 1) * size;
-  // Overfetch by 1 so we can tell if there's a next page without a count.
-  const snap = await q.offset(offset).limit(size + 1).get();
-  const docs = snap.docs;
+  const docs = sorted.slice(offset, offset + size + 1);
   const hasMore = docs.length > size;
   const items = docs.slice(0, size).map((d) => ({ id: d.id, ...d.data() }));
 
@@ -193,12 +160,9 @@ async function list({ action, actor, from, to, pageSize = 25, page = 1 } = {}) {
 }
 
 /**
- * Distinct values used to populate the filter dropdowns in the UI. We scan
- * the catalog for actions/groups, and pull a recent slice of actors from
- * Firestore. Cheap because the actor list is bounded.
+ * Distinct values for filter dropdowns, scoped to a tenant.
  */
-async function getFilterOptions() {
-  // Distinct action groups from the catalog.
+async function getFilterOptions(tenantId) {
   const groups = {};
   Object.entries(ACTION_CATALOG).forEach(([key, meta]) => {
     if (!groups[meta.group]) groups[meta.group] = { group: meta.group, label: GROUP_LABELS[meta.group] || meta.group, actions: [] };
@@ -206,12 +170,17 @@ async function getFilterOptions() {
   });
   const groupList = Object.values(groups).sort((a, b) => a.label.localeCompare(b.label));
 
-  // Recent actors — for the dropdown. We cap at 50 to keep the page small;
-  // if you have more, the user can still search by name in the global list.
-  const actorSnap = await logsCol().orderBy('createdAt', 'desc').limit(200).get();
+  let actorQuery = logsCol();
+  if (tenantId) actorQuery = actorQuery.where('tenantId', '==', tenantId);
+  const actorSnap = await actorQuery.limit(200).get();
+  const sortedActors = actorSnap.docs.sort((a, b) => {
+    const ca = a.data().createdAt || '';
+    const cb = b.data().createdAt || '';
+    return cb.localeCompare(ca);
+  });
   const seen = new Set();
   const actors = [];
-  actorSnap.forEach((d) => {
+  sortedActors.forEach((d) => {
     const a = d.data().actor || {};
     if (!a.id || seen.has(a.id)) return;
     seen.add(a.id);

@@ -12,6 +12,7 @@ const { db } = require('./config/firebase');
 const appSettings = require('./utils/appSettings');
 const { resolveUserPermissions } = require('./utils/permissions');
 const { seedDefaultRoles, enforceStaffInvariants } = require('./controllers/rolesController');
+const { resolveTenant, blockInactiveTenant } = require('./middleware/tenant');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -24,6 +25,7 @@ const kitchenRoutes = require('./routes/kitchen');
 const profileRoutes = require('./routes/profile');
 const logsRoutes = require('./routes/logs');
 const expenseRoutes = require('./routes/expenses');
+const adminRoutes = require('./routes/admin');
 const { ensureAuth } = require('./middleware/auth');
 
 const app = express();
@@ -50,6 +52,10 @@ app.use(
 );
 app.use(flash());
 
+// Tenant resolution middleware — runs on every request to determine
+// whether we're in admin mode or tenant mode from the URL.
+app.use(resolveTenant);
+
 // Expose common locals to every view. We also keep the session's
 // `permissions` Set fresh on every request — that way a role edit in one tab
 // takes effect in another tab within a single navigation, without forcing a
@@ -60,7 +66,12 @@ app.use(async (req, res, next) => {
   res.locals.error = req.flash('error');
   res.locals.currentPath = req.path;
   try {
-    res.locals.brand = await appSettings.get();
+    // Load tenant-specific or global branding
+    if (req.tenantId) {
+      res.locals.brand = await appSettings.getForTenant(req.tenantId);
+    } else {
+      res.locals.brand = await appSettings.get();
+    }
   } catch {
     res.locals.brand = { appName: 'Hostel Manager', iconUrl: null };
   }
@@ -78,11 +89,7 @@ app.use(async (req, res, next) => {
         // Keep display fields in sync in case the user was renamed.
         req.session.user.name = userData.name;
         req.session.user.email = userData.email;
-        // Persist the mutated session. `touch()` only bumps the cookie
-        // expiry, which is not enough if the store is anything but the
-        // default in-memory one (e.g. a Firestore-backed store would
-        // serialise the old Set on the next request). `save()` is a no-op
-        // for the in-memory store, so it's safe to always call.
+        // Persist the mutated session.
         req.session.save((err) => {
           if (err) console.warn('[session] save after rehydrate failed:', err.message);
         });
@@ -103,17 +110,50 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Routes
-app.get('/', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
-  return res.redirect('/auth/login');
+// ─── Root route ──────────────────────────────────────────────────────
+app.get('/', async (req, res) => {
+  // If user is logged in as super admin, go to admin panel
+  if (req.session.user && req.session.user.isSuperAdmin) {
+    return res.redirect('/admin/dashboard');
+  }
+  // If user is logged in and has a tenant in session, go to that tenant
+  if (req.session.user && req.session.tenantSlug) {
+    return res.redirect(`/${req.session.tenantSlug}/dashboard`);
+  }
+  // Show tenant selection page
+  const { listTenants } = require('./models/tenant');
+  const tenants = await listTenants();
+  const activeTenants = tenants.filter((t) => t.active !== false);
+  if (activeTenants.length === 1) {
+    // Only one active tenant — go straight there
+    return res.redirect(`/${activeTenants[0].slug}/auth/login`);
+  }
+  res.render('tenant-select', { title: 'Select Hostel', tenants });
 });
 
-app.get('/dashboard', ensureAuth, async (req, res) => {
+// ─── Admin routes (super admin panel) ───────────────────────────────
+app.use('/admin', adminRoutes);
+
+// ─── Tenant-scoped routes ───────────────────────────────────────────
+// All routes below are prefixed with /:tenantSlug by the tenant router.
+// The resolveTenant middleware already ran and set req.tenantId.
+
+// Auth — no tenant prefix needed since it's already in the path
+app.use('/:tenantSlug/auth', authRoutes);
+
+// Block mutations on inactive hostels (after auth so login still works)
+app.use(blockInactiveTenant);
+
+// Dashboard — inline route, tenant-scoped
+app.get('/:tenantSlug/dashboard', ensureAuth, async (req, res) => {
+  if (!req.tenantId) {
+    return res.redirect('/');
+  }
+  const tid = req.tenantId;
   const [students, rooms, expensesSnap] = await Promise.all([
-    db.collection('students').get(),
-    db.collection('rooms').get(),
-    db.collection('exports').get(),
+    db.collection('students').where('tenantId', '==', tid).get(),
+    db.collection('rooms').where('tenantId', '==', tid).get(),
+    db.collection('exports').where('tenantId', '==', tid).get(),
   ]);
   const roomData = rooms.docs.map((d) => d.data());
   const capacity = roomData.reduce((sum, r) => sum + (r.capacity || 0), 0);
@@ -154,17 +194,17 @@ app.get('/dashboard', ensureAuth, async (req, res) => {
   });
 });
 
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes);
-app.use('/students', studentRoutes);
-app.use('/rooms', roomRoutes);
-app.use('/fees', feesRoutes);
-app.use('/settings', settingsRoutes);
-app.use('/settings/roles', rolesRoutes);
-app.use('/kitchen', kitchenRoutes);
-app.use('/profile', profileRoutes);
-app.use('/logs', logsRoutes);
-app.use('/expenses', expenseRoutes);
+// Tenant-scoped CRUD routes
+app.use('/:tenantSlug/users', userRoutes);
+app.use('/:tenantSlug/students', studentRoutes);
+app.use('/:tenantSlug/rooms', roomRoutes);
+app.use('/:tenantSlug/fees', feesRoutes);
+app.use('/:tenantSlug/settings', settingsRoutes);
+app.use('/:tenantSlug/settings/roles', rolesRoutes);
+app.use('/:tenantSlug/kitchen', kitchenRoutes);
+app.use('/:tenantSlug/profile', profileRoutes);
+app.use('/:tenantSlug/logs', logsRoutes);
+app.use('/:tenantSlug/expenses', expenseRoutes);
 
 // 404
 app.use((req, res) => {
@@ -185,10 +225,6 @@ app.use((err, req, res, next) => {
 });
 
 // Bootstrap the admin user from BOOTSTRAP_ADMIN_* in .env.
-// Self-healing: if a user with the configured email already exists, reset its
-// password to match BOOTSTRAP_ADMIN_PASSWORD. This means you can always log in
-// with the credentials in your .env, even if the hash got corrupted or you
-// forgot what you set previously. Set BOOTSTRAP_ADMIN_RESET=false to disable.
 async function bootstrapAdmin() {
   try {
     const email = process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@example.com';
@@ -200,14 +236,11 @@ async function bootstrapAdmin() {
 
     // Make sure the default roles exist before linking the admin to one.
     await seedDefaultRoles();
-    // Heal any Staff role doc that's missing the permissions the day-to-day
-    // UI depends on (e.g. `students.changeStatus`). Runs after seeding so
-    // a freshly created Staff doc inherits the right defaults on its first
-    // boot, and also catches docs that drifted via a previous app version
-    // or a hand edit.
     await enforceStaffInvariants();
-    const adminRoleSnap = await db.collection('roles').where('key', '==', 'admin').limit(1).get();
-    const adminRoleId = adminRoleSnap.empty ? null : adminRoleSnap.docs[0].id;
+    const adminRoleSnap = await db.collection('roles').where('key', '==', 'admin').limit(5).get();
+    // Find the global admin role (no tenantId) or fall back to any admin role
+    const adminRoleDoc = adminRoleSnap.docs.find(d => !d.data().tenantId) || adminRoleSnap.docs[0];
+    const adminRoleId = adminRoleDoc ? adminRoleDoc.id : null;
 
     const existing = await db
       .collection('users')
@@ -222,25 +255,26 @@ async function bootstrapAdmin() {
         passwordHash,
         role: 'admin',
         roleId: adminRoleId,
+        isSuperAdmin: true,
         createdAt: new Date().toISOString(),
       });
       console.log(
-        `[bootstrap] Admin created: ${email} / ${password} ` +
+        `[bootstrap] Super admin created: ${email} / ${password} ` +
           `(change in .env for production!)`
       );
       return;
     }
 
     if (reset) {
-      const update = { passwordHash, role: 'admin' };
+      const update = { passwordHash, role: 'admin', isSuperAdmin: true };
       if (adminRoleId) update.roleId = adminRoleId;
       await existing.docs[0].ref.update(update);
       console.log(
-        `[bootstrap] Admin password reset for ${email} from BOOTSTRAP_ADMIN_PASSWORD ` +
+        `[bootstrap] Super admin password reset for ${email} from BOOTSTRAP_ADMIN_PASSWORD ` +
           `(disable with BOOTSTRAP_ADMIN_RESET=false in .env)`
       );
     } else {
-      console.log(`[bootstrap] Admin already exists: ${email} (reset disabled)`);
+      console.log(`[bootstrap] Super admin already exists: ${email} (reset disabled)`);
     }
   } catch (err) {
     console.error('[bootstrap] failed:', err.message);

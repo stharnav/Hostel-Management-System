@@ -1,22 +1,24 @@
 <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   <div>
-    <a href="/rooms" class="text-sm text-ink-500 hover:text-ink-700">
+    <a href="<%= basePath %>/rooms" class="text-sm text-ink-500 hover:text-ink-700">
       <i class="bi bi-arrow-left"></i> Back to rooms
     </a>
     <h2 class="mt-1 text-2xl font-bold text-ink-900">Room <%= room.roomNumber %></h2>
   </div>
   <div class="flex items-center gap-2">
-    <a href="/rooms/<%= room.id %>/edit"
+    <% if (!tenantInactive) { %>
+    <a href="<%= basePath %>/rooms/<%= room.id %>/edit"
        class="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50">
       <i class="bi bi-pencil"></i> Edit
     </a>
     <% if (currentUser.role === 'admin') { %>
-      <form method="POST" action="/rooms/<%= room.id %>?_method=DELETE" class="inline"
+      <form method="POST" action="<%= basePath %>/rooms/<%= room.id %>?_method=DELETE" class="inline"
             onsubmit="return confirm('Delete this room?')">
         <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
           <i class="bi bi-trash"></i> Delete
         </button>
       </form>
+    <% } %>
     <% } %>
   </div>
 </div>
@@ -44,13 +46,14 @@
     </div>
 
     <div class="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+      <% if (!tenantInactive) { %>
       <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-500">Assign student</h4>
       <% if ((room.occupants || []).length >= room.capacity) { %>
         <p class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Room is at full capacity.</p>
       <% } else if (!unassigned.length) { %>
         <p class="rounded-lg bg-ink-50 px-3 py-2 text-sm text-ink-600">No unassigned students available.</p>
       <% } else { %>
-        <form method="POST" action="/rooms/<%= room.id %>/assign" class="space-y-3">
+        <form method="POST" action="<%= basePath %>/rooms/<%= room.id %>/assign" class="space-y-3">
           <select name="studentId" required class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
             <% unassigned.forEach(function(s) { %>
               <option value="<%= s.id %>"><%= s.name %> (<%= s.email %>)</option>
@@ -60,6 +63,10 @@
             <i class="bi bi-person-plus-fill"></i> Assign
           </button>
         </form>
+      <% } %>
+      <% } else { %>
+      <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-500">Assign student</h4>
+      <p class="rounded-lg bg-ink-50 px-3 py-2 text-sm text-ink-600">Hostel is inactive — assignments are disabled.</p>
       <% } %>
     </div>
   </div>
@@ -90,16 +97,18 @@
               <p class="truncate text-sm font-semibold text-ink-900"><%= s.name %></p>
               <p class="truncate text-xs text-ink-500"><%= s.email %> · <%= s.phone %></p>
             </div>
-            <a href="/students/<%= s.id %>" class="rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700">
+            <a href="<%= basePath %>/students/<%= s.id %>" class="rounded-lg p-2 text-ink-500 hover:bg-brand-50 hover:text-brand-700">
               <i class="bi bi-eye"></i>
             </a>
-            <form method="POST" action="/rooms/<%= room.id %>/unassign" class="inline"
+            <% if (!tenantInactive) { %>
+            <form method="POST" action="<%= basePath %>/rooms/<%= room.id %>/unassign" class="inline"
                   onsubmit="return confirm('Remove this student from room?')">
               <input type="hidden" name="studentId" value="<%= s.id %>" />
               <button class="rounded-lg p-2 text-ink-500 hover:bg-red-50 hover:text-red-700">
                 <i class="bi bi-x-lg"></i>
               </button>
             </form>
+            <% } %>
           </li>
         <% }) %>
       </ul>

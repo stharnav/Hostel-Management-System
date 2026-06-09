@@ -7,7 +7,16 @@ const { record: log } = require('../utils/logger');
 const usersCol = () => db.collection('users');
 
 exports.getLogin = (req, res) => {
-  res.render('auth/login', { title: 'Login' });
+  // Super admin login
+  if (req.isAdminRoute && !req.tenantSlug) {
+    return res.render('auth/admin-login', { title: 'Super Admin Login' });
+  }
+  // Tenant login
+  if (req.tenantSlug) {
+    return res.render('auth/login', { title: 'Login' });
+  }
+  // No context — redirect to root
+  return res.redirect('/');
 };
 
 exports.postLogin = async (req, res) => {
@@ -17,41 +26,78 @@ exports.postLogin = async (req, res) => {
 
     if (!email || !password) {
       req.flash('error', 'Email and password are required');
-      return res.redirect('/auth/login');
+      if (req.tenantSlug) return res.redirect(`/${req.tenantSlug}/auth/login`);
+      if (req.isAdminRoute) return res.redirect('/admin/auth/login');
+      return res.redirect('/');
     }
 
-    // Case-insensitive lookup — emails are stored as entered, so scan and match.
+    // Case-insensitive lookup
     const snap = await usersCol().get();
-    const doc = snap.docs.find(
+    let doc = snap.docs.find(
       (d) => (d.data().email || '').toLowerCase() === email
     );
+
     if (!doc) {
       console.warn(`[auth] no user found for ${email}`);
-      // Record the attempt with the email as the actor. We don't know the
-      // user id, so the activity feed will show the email they tried.
       await log(req, 'auth.login_failed', { summary: `Failed sign-in for ${email}` });
       req.flash('error', 'Invalid email or password');
-      return res.redirect('/auth/login');
+      if (req.tenantSlug) return res.redirect(`/${req.tenantSlug}/auth/login`);
+      if (req.isAdminRoute) return res.redirect('/admin/auth/login');
+      return res.redirect('/');
     }
+
     const user = doc.data();
     const ok = await bcrypt.compare(password, user.passwordHash || '');
     if (!ok) {
       console.warn(`[auth] password mismatch for ${email}`);
       await log(req, 'auth.login_failed', { summary: `Wrong password for ${email}` });
       req.flash('error', 'Invalid email or password');
-      return res.redirect('/auth/login');
+      if (req.tenantSlug) return res.redirect(`/${req.tenantSlug}/auth/login`);
+      if (req.isAdminRoute) return res.redirect('/admin/auth/login');
+      return res.redirect('/');
     }
-    // Inactive accounts (deactivated by an admin) can't sign in. Use the same
-    // generic message as a wrong password so we don't leak account existence.
+
     if (!isActive(user)) {
       console.warn(`[auth] inactive account ${email} tried to log in`);
       await log(req, 'auth.login_failed', { summary: `Inactive account attempted sign-in: ${email}` });
       req.flash('error', 'Invalid email or password');
-      return res.redirect('/auth/login');
+      if (req.tenantSlug) return res.redirect(`/${req.tenantSlug}/auth/login`);
+      if (req.isAdminRoute) return res.redirect('/admin/auth/login');
+      return res.redirect('/');
     }
-    // Hydrate the permission Set once at login. The server-wide middleware
-    // refreshes it on every request, so role edits take effect without
-    // forcing a re-login.
+
+    // Super admin login (no tenant context)
+    if (req.isAdminRoute && !req.tenantSlug) {
+      if (!user.isSuperAdmin) {
+        req.flash('error', 'Invalid email or password');
+        return res.redirect('/admin/auth/login');
+      }
+      const permissions = await resolveUserPermissions(db, user);
+      req.session.user = {
+        id: doc.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roleId: user.roleId || null,
+        permissions,
+        isSuperAdmin: true,
+      };
+      await log(req, 'auth.login', { summary: `${user.name} signed in (super admin)` });
+      req.flash('success', `Welcome back, ${user.name}`);
+      return res.redirect('/admin/dashboard');
+    }
+
+    // Tenant login — verify user belongs to this tenant
+    if (req.tenantSlug && req.tenantId) {
+      if (user.tenantId !== req.tenantId) {
+        // User exists but not in this tenant — check if they're a super admin
+        if (!user.isSuperAdmin) {
+          req.flash('error', 'Invalid email or password');
+          return res.redirect(`/${req.tenantSlug}/auth/login`);
+        }
+      }
+    }
+
     const permissions = await resolveUserPermissions(db, user);
     req.session.user = {
       id: doc.id,
@@ -60,25 +106,38 @@ exports.postLogin = async (req, res) => {
       role: user.role,
       roleId: user.roleId || null,
       permissions,
+      isSuperAdmin: !!user.isSuperAdmin,
     };
-    // Now that the session is populated, the logger can identify the actor.
+
+    // Store tenant info in session
+    if (req.tenantSlug) {
+      req.session.tenantSlug = req.tenantSlug;
+      req.session.tenantId = req.tenantId;
+    }
+
     await log(req, 'auth.login', { summary: `${user.name} signed in` });
     req.flash('success', `Welcome back, ${user.name}`);
-    res.redirect('/dashboard');
+
+    if (req.tenantSlug) {
+      res.redirect(`/${req.tenantSlug}/dashboard`);
+    } else {
+      res.redirect('/admin/dashboard');
+    }
   } catch (err) {
     console.error('[auth] login error:', err);
     req.flash('error', 'Something went wrong — check server logs');
-    res.redirect('/auth/login');
+    if (req.tenantSlug) return res.redirect(`/${req.tenantSlug}/auth/login`);
+    if (req.isAdminRoute) return res.redirect('/admin/auth/login');
+    res.redirect('/');
   }
 };
 
 exports.logout = async (req, res) => {
-  // The session is about to be destroyed, but the logger reads from it
-  // synchronously, so we can still pull the actor. Use a callback wrapper
-  // that fires the log *before* the destroy callback runs.
   const user = req.session && req.session.user;
+  const tenantSlug = req.session && req.session.tenantSlug;
   if (user) {
     await log(req, 'auth.logout', { summary: `${user.name} signed out` });
   }
-  req.session.destroy(() => res.redirect('/auth/login'));
+  const redirectTarget = tenantSlug ? `/${tenantSlug}/auth/login` : '/admin/auth/login';
+  req.session.destroy(() => res.redirect(redirectTarget));
 };

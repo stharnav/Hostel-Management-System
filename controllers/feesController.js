@@ -1,7 +1,3 @@
-// Fees / billing controller.
-// Lists students by fee status and records payments. Status itself is
-// derived on the fly from enrolledAt / lastPaidAt — see utils/fees.
-
 const { db, admin } = require('../config/firebase');
 const { computeFeeStatus, CYCLE_DAYS, GRACE_DAYS } = require('../utils/fees');
 const { record: log } = require('../utils/logger');
@@ -9,14 +5,10 @@ const { record: log } = require('../utils/logger');
 const studentsCol = () => db.collection('students');
 const roomsCol = () => db.collection('rooms');
 
-/**
- * Build the unified fee list. Loads every student + their room (for rent
- * amount), computes status, and groups by status. Also returns totals.
- */
-async function loadFeeData() {
+async function loadFeeData(tenantId) {
   const [studentsSnap, roomsSnap] = await Promise.all([
-    studentsCol().get(),
-    roomsCol().get(),
+    studentsCol().where('tenantId', '==', tenantId).get(),
+    roomsCol().where('tenantId', '==', tenantId).get(),
   ]);
   const roomMap = new Map();
   roomsSnap.forEach((d) => roomMap.set(d.id, { id: d.id, ...d.data() }));
@@ -26,16 +18,10 @@ async function loadFeeData() {
 
   studentsSnap.forEach((doc) => {
     const s = { id: doc.id, ...doc.data() };
-    // Students who have permanently left the hostel don't owe fees anymore.
     if (s.status === 'left') return;
     const fee = computeFeeStatus(s, now);
     const room = s.roomId ? roomMap.get(s.roomId) : null;
-    all.push({
-      ...s,
-      fee,
-      room,
-      amount: room?.rent || 0,
-    });
+    all.push({ ...s, fee, room, amount: room?.rent || 0 });
   });
 
   const groups = {
@@ -44,7 +30,6 @@ async function loadFeeData() {
     pending: all.filter((s) => s.fee.status === 'pending'),
     unknown: all.filter((s) => s.fee.status === 'unknown'),
   };
-  // Sort by urgency.
   groups.overdue.sort((a, b) => b.fee.daysOverdue - a.fee.daysOverdue);
   groups.due.sort((a, b) => a.fee.daysLeft - b.fee.daysLeft);
   groups.pending.sort((a, b) => a.fee.daysLeft - b.fee.daysLeft);
@@ -59,8 +44,8 @@ async function loadFeeData() {
 }
 
 exports.list = async (req, res) => {
-  const filter = (req.query.status || 'todo').toLowerCase(); // todo | overdue | due | pending | all
-  const data = await loadFeeData();
+  const filter = (req.query.status || 'todo').toLowerCase();
+  const data = await loadFeeData(req.tenantId);
 
   let visible;
   switch (filter) {
@@ -70,7 +55,6 @@ exports.list = async (req, res) => {
     case 'all':     visible = data.all; break;
     case 'todo':
     default:
-      // "To pay" = students who owe right now (due + overdue), most urgent first.
       visible = [...data.groups.overdue, ...data.groups.due];
       break;
   }
@@ -90,9 +74,9 @@ exports.markPaid = async (req, res) => {
     const { amount, method, note } = req.body;
     const ref = studentsCol().doc(req.params.id);
     const doc = await ref.get();
-    if (!doc.exists) {
+    if (!doc.exists || doc.data().tenantId !== req.tenantId) {
       req.flash('error', 'Student not found');
-      return res.redirect('/fees');
+      return res.redirect(`/${req.tenantSlug}/fees`);
     }
     const paidAtIso = new Date().toISOString();
     const payment = {
@@ -116,10 +100,10 @@ exports.markPaid = async (req, res) => {
       details: { amount: payment.amount, method: payment.method, note: payment.note },
     });
     req.flash('success', `Payment of ${payment.amount} recorded`);
-    res.redirect('/fees');
+    res.redirect(`/${req.tenantSlug}/fees`);
   } catch (err) {
     console.error('[fees] markPaid failed:', err);
     req.flash('error', 'Failed to record payment');
-    res.redirect('/fees');
+    res.redirect(`/${req.tenantSlug}/fees`);
   }
 };

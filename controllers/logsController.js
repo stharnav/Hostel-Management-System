@@ -1,6 +1,3 @@
-// Activity log viewer. Admin-only by design (it can reveal other users'
-// actions, IPs, and emails). Backed by utils/logger.
-
 const {
   list,
   getFilterOptions,
@@ -9,46 +6,23 @@ const {
   COLOR_CLASSES,
 } = require('../utils/logger');
 
-/**
- * Render the log feed. Query params supported:
- *   action  — exact action key (e.g. 'student.create')
- *   actor   — actor user id
- *   group   — restrict to a group ('students', 'rooms', …)
- *   from    — ISO date or YYYY-MM-DD; inclusive
- *   to      — ISO date or YYYY-MM-DD; inclusive
- *   page    — 1-based page number
- *
- * Validation is deliberately loose: the form is for humans, not for
- * blocking attackers, so anything weird just shows up empty.
- */
 exports.index = async (req, res) => {
   const action = (req.query.action || '').trim() || null;
   const actor = (req.query.actor || '').trim() || null;
   const group = (req.query.group || '').trim() || null;
 
-  // Normalize the date inputs — accept 'YYYY-MM-DD' from the date input
-  // and turn it into an ISO range that covers the whole day.
   const from = normalizeDate(req.query.from, false);
   const to   = normalizeDate(req.query.to,   true);
 
-  // If a group filter is set, expand it to all of that group's action
-  // keys. We do that in JS instead of Firestore because we don't have a
-  // 'group' field on the log doc — only `action`.
-  let effectiveAction = action;
-  if (!effectiveAction && group) {
-    // Filter in memory after the query. We can't restrict the Firestore
-    // query, but the page size keeps it cheap.
-  }
-
   const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
   const pageSize = 25;
+  const tenantId = req.tenantId;
 
   const [{ items, hasMore }, options] = await Promise.all([
-    list({ action, actor, from, to, page, pageSize }),
-    getFilterOptions(),
+    list({ action, actor, from, to, tenantId, page, pageSize }),
+    getFilterOptions(tenantId),
   ]);
 
-  // Group post-filter: drop items that don't belong to the chosen group.
   const filtered = group
     ? items.filter((it) => {
         const meta = ACTION_INDEX[it.action];
@@ -56,7 +30,6 @@ exports.index = async (req, res) => {
       })
     : items;
 
-  // Decorate each item with display metadata so the view stays dumb.
   const decorated = filtered.map((it) => {
     const meta = ACTION_INDEX[it.action] || {
       label: it.action,
@@ -68,7 +41,6 @@ exports.index = async (req, res) => {
       ...it,
       meta,
       color,
-      // Pre-format the timestamp for the view.
       when: formatRelative(it.createdAt),
       whenAbsolute: formatAbsolute(it.createdAt),
     };
@@ -80,8 +52,6 @@ exports.index = async (req, res) => {
     hasMore,
     page,
     pageSize,
-    // The view's pageUrl() helper needs the original query string so
-    // paginated links preserve active filters — pass req through.
     req,
     filters: { action, actor, group, from: req.query.from || '', to: req.query.to || '' },
     options,
@@ -89,16 +59,9 @@ exports.index = async (req, res) => {
   });
 };
 
-// ---------- helpers ----------
-
-/**
- * Convert a date-input value into an ISO timestamp covering the start or
- * end of the day. `isEnd = true` pushes to 23:59:59.999Z.
- */
 function normalizeDate(value, isEnd) {
   if (!value) return null;
   const s = String(value).trim();
-  // Accept either 'YYYY-MM-DD' or a full ISO string.
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(s);
   if (!m) return null;
   const day = m[1];

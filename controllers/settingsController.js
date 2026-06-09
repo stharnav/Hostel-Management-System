@@ -9,15 +9,12 @@ const { uploadImage, deleteImage } = require('../utils/storage');
 const appSettings = require('../utils/appSettings');
 const { record: log } = require('../utils/logger');
 
-// Collections we measure for Firestore "data used".
 const TRACKED_COLLECTIONS = ['students', 'rooms', 'users', 'settings'];
 
-// Shared loader for the storage page (and any other view that needs the
-// same dashboard). Keeps the Firebase queries in one place.
-async function loadStorageDashboard() {
+async function loadStorageDashboard(tenantId) {
   const [storage, firestore] = await Promise.all([
     getStorageUsage(),
-    getFirestoreUsage(db, TRACKED_COLLECTIONS),
+    getFirestoreUsage(db, TRACKED_COLLECTIONS, tenantId),
   ]);
   return {
     storage,
@@ -32,12 +29,17 @@ async function loadStorageDashboard() {
 }
 
 exports.index = async (req, res) => {
-  const [brand] = await Promise.all([appSettings.get()]);
+  let brand;
+  if (req.tenantId) {
+    brand = await appSettings.getForTenant(req.tenantId);
+  } else {
+    brand = await appSettings.get();
+  }
   res.render('settings/index', { title: 'Settings', brand });
 };
 
 exports.storage = async (req, res) => {
-  const data = await loadStorageDashboard();
+  const data = await loadStorageDashboard(req.tenantId);
   res.render('settings/storage', { title: 'Storage', ...data });
 };
 
@@ -47,7 +49,6 @@ exports.updateBranding = async (req, res) => {
     const name = (req.body.appName || '').trim();
     if (name) patch.appName = name.slice(0, 60);
 
-    // Currency — optional in the same form.
     const symbol = (req.body.currencySymbol || '').trim();
     const code = (req.body.currencyCode || '').trim().toUpperCase();
     if (symbol) patch.currencySymbol = symbol.slice(0, 5);
@@ -55,53 +56,64 @@ exports.updateBranding = async (req, res) => {
 
     const iconFile = req.file;
     if (iconFile) {
-      // Icons stay small — resize to 256×256 and re-encode.
       const compressed = await compressImage(iconFile.buffer, {
         maxWidth: 256,
         maxHeight: 256,
         quality: 85,
       });
-      const uploaded = await uploadImage(compressed, 'branding');
+      const folder = req.tenantSlug ? `${req.tenantSlug}/branding` : 'branding';
+      const uploaded = await uploadImage(compressed, folder);
 
-      // Remove the old icon from Storage if there was one.
-      const current = await appSettings.get();
+      const current = req.tenantId
+        ? await appSettings.getForTenant(req.tenantId)
+        : await appSettings.get();
       if (current.iconPath) {
         await deleteImage(current.iconPath);
       }
       patch.iconUrl = uploaded.url;
-      patch.iconPath = uploaded.path; // null when using inline fallback
+      patch.iconPath = uploaded.path;
     }
 
     if (Object.keys(patch).length === 0) {
       req.flash('error', 'Nothing to update');
-      return res.redirect('/settings');
+      return res.redirect(`/${req.tenantSlug}/settings`);
     }
 
-    await appSettings.update(patch);
+    if (req.tenantId) {
+      await appSettings.updateForTenant(req.tenantId, patch);
+    } else {
+      await appSettings.update(patch);
+    }
     await log(req, 'settings.update_branding', {
       entity: 'settings',
       summary: `Updated branding${patch.appName ? ` (app name: ${patch.appName})` : ''}`,
       details: Object.keys(patch),
     });
     req.flash('success', 'Settings updated');
-    res.redirect('/settings');
+    res.redirect(`/${req.tenantSlug || ''}/settings`);
   } catch (err) {
     console.error('[settings] updateBranding failed:', err);
     req.flash('error', err.message || 'Failed to update settings');
-    res.redirect('/settings');
+    res.redirect(`/${req.tenantSlug || ''}/settings`);
   }
 };
 
 exports.resetIcon = async (req, res) => {
   try {
-    const current = await appSettings.get();
+    const current = req.tenantId
+      ? await appSettings.getForTenant(req.tenantId)
+      : await appSettings.get();
     if (current.iconPath) await deleteImage(current.iconPath);
-    await appSettings.update({ iconUrl: null, iconPath: null });
+    if (req.tenantId) {
+      await appSettings.updateForTenant(req.tenantId, { iconUrl: null, iconPath: null });
+    } else {
+      await appSettings.update({ iconUrl: null, iconPath: null });
+    }
     req.flash('success', 'Icon reset to default');
-    res.redirect('/settings');
+    res.redirect(`/${req.tenantSlug || ''}/settings`);
   } catch (err) {
     console.error('[settings] resetIcon failed:', err);
     req.flash('error', 'Failed to reset icon');
-    res.redirect('/settings');
+    res.redirect(`/${req.tenantSlug || ''}/settings`);
   }
 };

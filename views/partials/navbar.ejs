@@ -8,6 +8,12 @@
   </div>
 
   <div class="flex items-center gap-3">
+    <% if (tenant) { %>
+      <span class="hidden sm:inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
+        <i class="bi bi-building mr-1.5"></i>
+        <%= tenant.name %>
+      </span>
+    <% } %>
     <span class="hidden sm:inline-flex items-center rounded-full bg-ink-100 px-3 py-1 text-xs font-medium text-ink-700">
       <i class="bi bi-calendar3 mr-1.5"></i>
       <%= new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) %>

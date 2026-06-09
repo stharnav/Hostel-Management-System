@@ -61,6 +61,15 @@
         <%- include('../partials/navbar') %>
         <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <%- include('../partials/flash') %>
+          <% if (typeof tenantInactive !== 'undefined' && tenantInactive) { %>
+            <div class="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+              <i class="bi bi-exclamation-triangle-fill text-lg mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">This hostel is inactive</p>
+                <p class="text-xs text-amber-700 mt-0.5">You can view data but cannot create, edit, or delete anything. Contact your super admin to reactivate this hostel.</p>
+              </div>
+            </div>
+          <% } %>
           <%- body %>
         </main>
       </div>
@@ -69,7 +78,7 @@
     <main class="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900">
       <%# Login pages render their own inline error — skip the global flash
           partial here so the banner doesn't appear outside the card. %>
-      <% if (!currentPath.startsWith('/auth/login')) { %>
+      <% if (!currentPath.includes('/auth/login')) { %>
         <%- include('../partials/flash') %>
       <% } %>
       <%- body %>

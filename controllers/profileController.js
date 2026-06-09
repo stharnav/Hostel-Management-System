@@ -1,7 +1,3 @@
-// Self-service profile controller. Lets the signed-in user change their own
-// password and dietary preference. They can't change their own name/email/
-// role/active flag — that's admin territory (see userController).
-
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/firebase');
 const { isActive } = require('./userController');
@@ -42,7 +38,6 @@ exports.update = async (req, res) => {
     const update = { updatedAt: new Date().toISOString() };
     let changed = false;
 
-    // Dietary preference — one of the allowed values, else ignore.
     if (req.body.dietary !== undefined) {
       if (DIET_OPTIONS.includes(req.body.dietary)) {
         update.dietary = req.body.dietary;
@@ -50,30 +45,27 @@ exports.update = async (req, res) => {
       }
     }
 
-    // Password change — requires the current password to be verified, then
-    // a new password of at least 6 characters. Both must be provided.
     const currentPassword = req.body.currentPassword || '';
     const newPassword     = req.body.newPassword || '';
     const confirmPassword = req.body.confirmPassword || '';
 
     if (currentPassword || newPassword || confirmPassword) {
-      // Any password change requires all three fields.
       if (!currentPassword || !newPassword || !confirmPassword) {
         req.flash('error', 'To change your password, fill in current, new, and confirm fields');
-        return res.redirect('/profile');
+        return res.redirect(`/${req.tenantSlug}/profile`);
       }
       const matches = await bcrypt.compare(currentPassword, me.data.passwordHash || '');
       if (!matches) {
         req.flash('error', 'Current password is incorrect');
-        return res.redirect('/profile');
+        return res.redirect(`/${req.tenantSlug}/profile`);
       }
       if (newPassword.length < 6) {
         req.flash('error', 'New password must be at least 6 characters');
-        return res.redirect('/profile');
+        return res.redirect(`/${req.tenantSlug}/profile`);
       }
       if (newPassword !== confirmPassword) {
         req.flash('error', 'New password and confirmation do not match');
-        return res.redirect('/profile');
+        return res.redirect(`/${req.tenantSlug}/profile`);
       }
       update.passwordHash = await bcrypt.hash(newPassword, 10);
       changed = true;
@@ -81,18 +73,15 @@ exports.update = async (req, res) => {
 
     if (!changed) {
       req.flash('error', 'Nothing to update');
-      return res.redirect('/profile');
+      return res.redirect(`/${req.tenantSlug}/profile`);
     }
 
     await me.ref.update(update);
-
-    // Keep the session-stored name in sync (it doesn't change here, but if
-    // we ever expose name edits on this page, session would auto-stale).
     req.flash('success', 'Profile updated');
-    res.redirect('/profile');
+    res.redirect(`/${req.tenantSlug}/profile`);
   } catch (err) {
     console.error('[profile] update failed:', err);
     req.flash('error', 'Failed to update profile');
-    res.redirect('/profile');
+    res.redirect(`/${req.tenantSlug}/profile`);
   }
 };

@@ -1,0 +1,101 @@
+<div class="max-w-7xl mx-auto">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-ink-900">Manage Hostels</h1>
+      <p class="text-ink-500 mt-1">Create, edit, and manage all hostels in the system</p>
+    </div>
+    <a href="/admin/tenants/add" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition">
+      <i class="bi bi-plus-lg"></i>
+      Add Hostel
+    </a>
+  </div>
+
+  <% if (tenants.length === 0) { %>
+    <div class="rounded-xl border-2 border-dashed border-ink-200 bg-white p-12 text-center">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-ink-100">
+        <i class="bi bi-building text-2xl text-ink-400"></i>
+      </div>
+      <h3 class="mt-4 text-lg font-semibold text-ink-900">No hostels yet</h3>
+      <p class="mt-2 text-ink-500">Create your first hostel to get started.</p>
+      <a href="/admin/tenants/add" class="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+        <i class="bi bi-plus-lg"></i>
+        Add Hostel
+      </a>
+    </div>
+  <% } else { %>
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <% tenants.forEach(function(t) { %>
+        <div class="rounded-xl border border-ink-200 bg-white shadow-soft p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+                <i class="bi bi-building text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-ink-900"><%= t.name %></h3>
+                <p class="text-xs text-ink-400">/<%= t.slug %></p>
+              </div>
+            </div>
+            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                         <%= t.active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700' %>">
+              <%= t.active ? 'Active' : 'Inactive' %>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="rounded-lg bg-ink-50 p-3 text-center">
+              <p class="text-lg font-bold text-ink-900"><%= t.stats.students %></p>
+              <p class="text-xs text-ink-500">Students</p>
+            </div>
+            <div class="rounded-lg bg-ink-50 p-3 text-center">
+              <p class="text-lg font-bold text-ink-900"><%= t.stats.rooms %></p>
+              <p class="text-xs text-ink-500">Rooms</p>
+            </div>
+            <div class="rounded-lg bg-ink-50 p-3 text-center">
+              <p class="text-lg font-bold text-ink-900"><%= t.stats.occupied %>/<%= t.stats.capacity %></p>
+              <p class="text-xs text-ink-500">Occupied</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <a href="/<%= t.slug %>/dashboard" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-ink-100 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-200 transition">
+              <i class="bi bi-box-arrow-up-right"></i>
+              Open
+            </a>
+            <a href="/admin/tenants/<%= t.id %>/edit" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-ink-100 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-200 transition">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form action="/admin/tenants/<%= t.id %>/delete" method="POST" class="inline"
+                  onsubmit="return confirm('Delete this hostel and ALL its data? This cannot be undone.')">
+              <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <div class="mt-8 rounded-xl border border-ink-200 bg-white p-6">
+    <h2 class="text-lg font-semibold text-ink-900 mb-2">System Info</h2>
+    <div class="grid gap-4 sm:grid-cols-2 text-sm">
+      <div>
+        <span class="text-ink-500">Total Hostels:</span>
+        <span class="font-medium text-ink-900"><%= tenants.length %></span>
+      </div>
+      <div>
+        <span class="text-ink-500">Total Students:</span>
+        <span class="font-medium text-ink-900"><%= tenants.reduce((s, t) => s + t.stats.students, 0) %></span>
+      </div>
+      <div>
+        <span class="text-ink-500">Total Rooms:</span>
+        <span class="font-medium text-ink-900"><%= tenants.reduce((s, t) => s + t.stats.rooms, 0) %></span>
+      </div>
+      <div>
+        <span class="text-ink-500">Total Capacity:</span>
+        <span class="font-medium text-ink-900"><%= tenants.reduce((s, t) => s + t.stats.capacity, 0) %></span>
+      </div>
+    </div>
+  </div>
+</div>
