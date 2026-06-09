@@ -70,6 +70,15 @@
               </div>
             </div>
           <% } %>
+          <% if (typeof tenantStorageWarning !== 'undefined' && tenantStorageWarning) { %>
+            <div class="mb-4 flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 text-orange-800">
+              <i class="bi bi-database-exclamation text-lg mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">Storage quota nearly full</p>
+                <p class="text-xs text-orange-700 mt-0.5">This hostel has used <strong><%= tenantStorageFormatted %></strong> (<%= tenantStoragePct.toFixed(1) %>% of <%= tenantStorageQuotaMB %> MB). Consider freeing up space or asking the super admin to increase the storage quota.</p>
+              </div>
+            </div>
+          <% } %>
           <%- body %>
         </main>
       </div>

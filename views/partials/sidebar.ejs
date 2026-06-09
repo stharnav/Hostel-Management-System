@@ -37,6 +37,22 @@
           </a>
         </li>
         <li>
+          <a href="/admin/profile"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath === '/admin/profile' ? 'bg-red-50 text-red-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-person-circle text-lg"></i>
+            My Profile
+          </a>
+        </li>
+        <li>
+          <a href="/admin/storage"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
+                    <%= currentPath === '/admin/storage' ? 'bg-red-50 text-red-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' %>">
+            <i class="bi bi-hdd-fill text-lg"></i>
+            Storage
+          </a>
+        </li>
+        <li>
           <a href="/admin/auth/logout"
              class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-red-50 hover:text-red-700">
             <i class="bi bi-box-arrow-right text-lg"></i>

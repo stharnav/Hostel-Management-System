@@ -40,7 +40,9 @@ exports.index = async (req, res) => {
 
 exports.storage = async (req, res) => {
   const data = await loadStorageDashboard(req.tenantId);
-  res.render('settings/storage', { title: 'Storage', ...data });
+  // Read per-tenant Firestore quota, default 100 MB
+  const storageQuotaMB = (req.tenant && req.tenant.storageQuotaMB) || 100;
+  res.render('settings/storage', { title: 'Storage', ...data, storageQuotaMB });
 };
 
 exports.updateBranding = async (req, res) => {

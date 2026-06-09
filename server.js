@@ -82,6 +82,20 @@ app.use(async (req, res, next) => {
       const userDoc = await db.collection('users').doc(req.session.user.id).get();
       if (userDoc.exists) {
         const userData = userDoc.data();
+        // Enforce tenant-scoped access — prevent a user of one hostel
+        // from manually changing the URL to access another hostel's data.
+        if (!req.isAdminRoute && req.tenantId && !userData.isSuperAdmin) {
+          if (userData.tenantId && userData.tenantId !== req.tenantId) {
+            req.flash('error', 'Access denied');
+            try {
+              const theirTenant = await db.collection('tenants').doc(userData.tenantId).get();
+              if (theirTenant.exists) {
+                return res.redirect(`/${theirTenant.data().slug}/dashboard`);
+              }
+            } catch {}
+            return req.session.destroy(() => res.redirect('/'));
+          }
+        }
         const perms = await resolveUserPermissions(db, userData);
         // Refresh the session too, so ensurePermission() can use it without
         // touching the DB on every request.
@@ -98,6 +112,31 @@ app.use(async (req, res, next) => {
       console.warn('[session] failed to refresh permissions:', err.message);
     }
   }
+  // Storage warning — check if tenant is near their Firestore quota
+  if (req.tenantId) {
+    try {
+      const tenantDoc = await db.collection('tenants').doc(req.tenantId).get();
+      if (tenantDoc.exists) {
+        const tenantData = tenantDoc.data();
+        const quotaMB = tenantData.storageQuotaMB || 100;
+        const quotaBytes = quotaMB * 1024 * 1024;
+        const { getFirestoreUsage } = require('./utils/storage');
+        const TRACKED_COLLECTIONS = ['students', 'rooms', 'users', 'settings'];
+        const usage = await getFirestoreUsage(db, TRACKED_COLLECTIONS, req.tenantId);
+        const pct = Math.min(100, (usage.bytes / quotaBytes) * 100);
+        if (pct >= 90) {
+          req.tenantStorageWarning = true;
+          res.locals.tenantStorageWarning = true;
+          res.locals.tenantStoragePct = pct;
+          res.locals.tenantStorageFormatted = usage.formatted;
+          res.locals.tenantStorageQuotaMB = quotaMB;
+        }
+      }
+    } catch (err) {
+      console.warn('[storage] quota check failed:', err.message);
+    }
+  }
+
   // can('students.create') — true if the signed-in user has that permission.
   // Admins always pass. Templates use this to gate UI controls and sidebar
   // entries without writing the role check by hand.

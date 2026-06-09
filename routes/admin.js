@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const os = require('os');
 const { ensureAuth, ensureRole } = require('../middleware/auth');
 const {
   listTenants,
@@ -40,21 +41,28 @@ router.get('/', async (req, res) => {
 
 router.get('/dashboard', async (req, res) => {
   const tenants = await listTenants();
+  const { getFirestoreUsage } = require('../utils/storage');
+  const TRACKED_COLLECTIONS = ['students', 'rooms', 'users', 'settings'];
+  const firestoreQuotaGB = 1;
+  const firestoreQuotaBytes = firestoreQuotaGB * 1024 * 1024 * 1024;
 
   // Load stats for each tenant
   const tenantStats = await Promise.all(
     tenants.map(async (t) => {
       try {
-        const [studentsSnap, roomsSnap, usersSnap] = await Promise.all([
+        const [studentsSnap, roomsSnap, usersSnap, firestore] = await Promise.all([
           db.collection('students').where('tenantId', '==', t.id).get(),
           db.collection('rooms').where('tenantId', '==', t.id).get(),
           db.collection('users').where('tenantId', '==', t.id).get(),
+          getFirestoreUsage(db, TRACKED_COLLECTIONS, t.id),
         ]);
         const roomData = roomsSnap.docs.map((d) => d.data());
         const capacity = roomData.reduce((sum, r) => sum + (r.capacity || 0), 0);
         const occupied = roomData.reduce((sum, r) => sum + (r.occupants?.length || 0), 0);
         return {
           ...t,
+          storagePct: Math.min(100, (firestore.bytes / firestoreQuotaBytes) * 100),
+          storageFormatted: firestore.formatted,
           stats: {
             students: studentsSnap.size,
             rooms: roomsSnap.size,
@@ -65,7 +73,7 @@ router.get('/dashboard', async (req, res) => {
           },
         };
       } catch {
-        return { ...t, stats: { students: 0, rooms: 0, users: 0, capacity: 0, occupied: 0, vacancies: 0 } };
+        return { ...t, storagePct: 0, storageFormatted: 'N/A', stats: { students: 0, rooms: 0, users: 0, capacity: 0, occupied: 0, vacancies: 0 } };
       }
     })
   );
@@ -137,11 +145,13 @@ router.post('/tenants/:id', async (req, res) => {
       return res.redirect('/admin/dashboard');
     }
 
-    const { name, active } = req.body;
+    const { name, active, storageQuotaMB } = req.body;
     const patch = {};
     if (name) patch.name = name.trim();
     // HTML checkboxes don't send a value when unchecked, so active === undefined means unchecked
     patch.active = active === 'on' || active === 'true';
+    const quota = parseInt(storageQuotaMB, 10);
+    if (!isNaN(quota) && quota >= 1 && quota <= 1024) patch.storageQuotaMB = quota;
 
     await updateTenant(req.params.id, patch);
     req.flash('success', 'Hostel updated');
@@ -170,6 +180,109 @@ router.post('/tenants/:id/delete', async (req, res) => {
     req.flash('error', 'Failed to delete hostel');
     res.redirect('/admin/dashboard');
   }
+});
+
+// ─── Profile ─────────────────────────────────────────────────────────
+router.get('/profile', async (req, res) => {
+  const doc = await db.collection('users').doc(req.session.user.id).get();
+  if (!doc.exists) {
+    req.flash('error', 'Account not found');
+    return res.redirect('/admin/auth/logout');
+  }
+  const userData = { id: doc.id, ...doc.data() };
+  res.render('admin/profile', { title: 'My Profile', user: userData });
+});
+
+router.put('/profile', async (req, res) => {
+  try {
+    const ref = db.collection('users').doc(req.session.user.id);
+    const doc = await ref.get();
+    if (!doc.exists) {
+      req.flash('error', 'Account not found');
+      return res.redirect('/admin/auth/logout');
+    }
+    const userData = doc.data();
+    const update = { updatedAt: new Date().toISOString() };
+    let changed = false;
+
+    // Email change
+    const newEmail = (req.body.email || '').trim().toLowerCase();
+    if (newEmail && newEmail !== userData.email) {
+      const existing = await db.collection('users').where('email', '==', newEmail).limit(1).get();
+      if (!existing.empty && existing.docs[0].id !== doc.id) {
+        req.flash('error', 'Email already in use');
+        return res.redirect('/admin/profile');
+      }
+      update.email = newEmail;
+      changed = true;
+    }
+
+    // Password change
+    const currentPassword = req.body.currentPassword || '';
+    const newPassword     = req.body.newPassword || '';
+    const confirmPassword = req.body.confirmPassword || '';
+
+    if (currentPassword || newPassword || confirmPassword) {
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        req.flash('error', 'To change your password, fill in current, new, and confirm fields');
+        return res.redirect('/admin/profile');
+      }
+      const matches = await bcrypt.compare(currentPassword, userData.passwordHash || '');
+      if (!matches) {
+        req.flash('error', 'Current password is incorrect');
+        return res.redirect('/admin/profile');
+      }
+      if (newPassword.length < 6) {
+        req.flash('error', 'New password must be at least 6 characters');
+        return res.redirect('/admin/profile');
+      }
+      if (newPassword !== confirmPassword) {
+        req.flash('error', 'New password and confirmation do not match');
+        return res.redirect('/admin/profile');
+      }
+      update.passwordHash = await bcrypt.hash(newPassword, 10);
+      changed = true;
+    }
+
+    if (!changed) {
+      req.flash('error', 'Nothing to update');
+      return res.redirect('/admin/profile');
+    }
+
+    await ref.update(update);
+
+    // Sync session
+    if (update.email) req.session.user.email = update.email;
+    req.session.save(() => {
+      req.flash('success', 'Profile updated');
+      res.redirect('/admin/profile');
+    });
+  } catch (err) {
+    console.error('[admin] profile update failed:', err);
+    req.flash('error', 'Failed to update profile');
+    res.redirect('/admin/profile');
+  }
+});
+
+// ─── Storage ─────────────────────────────────────────────────────────
+router.get('/storage', async (req, res) => {
+  const { getStorageUsage, getFirestoreUsage } = require('../utils/storage');
+  const TRACKED_COLLECTIONS = ['students', 'rooms', 'users', 'settings'];
+  const [storage, firestore] = await Promise.all([
+    getStorageUsage(),
+    getFirestoreUsage(db, TRACKED_COLLECTIONS),
+  ]);
+  const data = {
+    storage,
+    firestore,
+    system: {
+      nodeVersion: process.version,
+      platform: `${process.platform} (${os.arch()})`,
+      uptime: Math.round(process.uptime()),
+      bucket: process.env.FIREBASE_STORAGE_BUCKET || '(not configured)',
+    },
+  };
+  res.render('admin/storage', { title: 'Storage', ...data });
 });
 
 module.exports = router;

@@ -61,6 +61,7 @@ async function createTenant({ name, slug, adminEmail, adminPassword, adminName }
     name: (name || '').trim(),
     slug,
     active: true,
+    storageQuotaMB: 100,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
